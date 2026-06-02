@@ -12,6 +12,7 @@ class Ticket extends Model
 
     protected $fillable = [
         'ticket_number',
+        'ticket_type',
         'title',
         'description',
         'category_id',
@@ -27,6 +28,10 @@ class Ticket extends Model
         'resolution_notes',
         'is_escalated',
         'escalated_at',
+        'karexpert_ref_id',
+        'karexpert_module',
+        'karexpert_contact',
+        'parent_ticket_id',
     ];
 
     protected $casts = [
@@ -101,6 +106,16 @@ class Ticket extends Model
         return $this->hasOne(Feedback::class);
     }
 
+    public function parentTicket()
+    {
+        return $this->belongsTo(Ticket::class, 'parent_ticket_id');
+    }
+
+    public function karexpertTickets()
+    {
+        return $this->hasMany(Ticket::class, 'parent_ticket_id');
+    }
+
     // Scopes
     public function scopeOpen($query)
     {
@@ -126,6 +141,16 @@ class Ticket extends Model
     public function scopeEscalated($query)
     {
         return $query->where('is_escalated', true);
+    }
+
+    public function scopeKarexpert($query)
+    {
+        return $query->where('ticket_type', 'karexpert');
+    }
+
+    public function scopeInternal($query)
+    {
+        return $query->where('ticket_type', 'internal');
     }
 
     public function scopeByDepartment($query, $departmentId)

@@ -18,7 +18,7 @@ class DashboardController extends Controller
         $inProgressStatusId = \App\Models\TicketStatus::where('name', 'in_progress')->value('id');
 
         // Base query — users see only their tickets
-        $base = Ticket::query();
+        $base = Ticket::internal();
         if (!$isStaff) {
             $base->where('created_by', $user->id);
         }

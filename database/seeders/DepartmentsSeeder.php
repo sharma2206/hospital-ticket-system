@@ -16,7 +16,6 @@ class DepartmentsSeeder extends Seeder
             ['name' => 'OPD',               'code' => 'OPD',   'location' => 'First Floor'],
             ['name' => 'Radiology',         'code' => 'RAD',   'location' => 'Second Floor'],
             ['name' => 'ICU',               'code' => 'ICU',   'location' => 'Third Floor'],
-            ['name' => 'Ward',              'code' => 'WARD',  'location' => 'Second Floor'],
             ['name' => 'Laboratory',        'code' => 'LAB',   'location' => 'Ground Floor'],
             ['name' => 'Operation Theatre', 'code' => 'OT',    'location' => 'Third Floor'],
             ['name' => 'Emergency',         'code' => 'EMG',   'location' => 'Ground Floor'],

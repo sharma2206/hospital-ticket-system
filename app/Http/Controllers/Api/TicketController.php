@@ -21,7 +21,7 @@ class TicketController
 
     public function index(Request $request)
     {
-        $query = Ticket::query();
+        $query = Ticket::internal();
 
         // ── Filters ──────────────────────────────────────────
 

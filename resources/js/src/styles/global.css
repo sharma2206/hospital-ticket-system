@@ -317,9 +317,156 @@ body {
   .main-content { margin-left: 0; }
   .detail-grid { grid-template-columns: 1fr; }
   .form-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: repeat(3, 1fr) !important; }
+  .kx-module-grid { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 640px) {
-  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .stats-grid { grid-template-columns: 1fr 1fr !important; }
   .page-content { padding: 1rem; }
   .topbar { padding: .75rem 1rem; }
+  .kx-module-grid { grid-template-columns: repeat(2, 1fr); }
+  .kx-status-timeline { gap: .5rem; }
+  .kx-timeline-label { font-size: .6rem; }
 }
+
+/* ══════════════════════════════════════════════
+   KareXpert Branded Styles
+   ══════════════════════════════════════════════ */
+
+/* ── Brand Icon ───────────────────────────── */
+.kx-brand-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 8px; font-size: .9rem;
+  font-weight: 800; color: #fff; flex-shrink: 0;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  box-shadow: 0 2px 8px rgba(99,102,241,.3);
+}
+
+/* ── KareXpert Button ─────────────────────── */
+.btn-kx {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: #fff; box-shadow: 0 2px 6px rgba(99,102,241,.3);
+}
+.btn-kx:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99,102,241,.4);
+}
+
+/* ── KareXpert Card Accent ────────────────── */
+.kx-card { border-top: 2px solid #6366f1; }
+.kx-stat-card::before {
+  background: linear-gradient(90deg, var(--stat-color, #6366f1), transparent) !important;
+}
+
+/* ── KareXpert Link ───────────────────────── */
+.kx-link { color: #6366f1 !important; }
+.kx-link:hover { color: #4f46e5 !important; }
+
+/* ── KareXpert Status Badges ──────────────── */
+.kx-badge-raised { background: #fef3c7; color: #92400e; }
+.kx-badge-acknowledged { background: #ede9fe; color: #5b21b6; }
+.kx-badge-karexpert_working { background: #e0f2fe; color: #0369a1; }
+.kx-badge-awaiting_deployment { background: #ffedd5; color: #9a3412; }
+.kx-badge-deployed { background: #d1fae5; color: #065f46; }
+
+/* ── KareXpert Status Dots ────────────────── */
+.kx-dot-raised { background: #f59e0b; }
+.kx-dot-acknowledged { background: #8b5cf6; }
+.kx-dot-karexpert_working { background: #0ea5e9; }
+.kx-dot-awaiting_deployment { background: #f97316; }
+.kx-dot-deployed { background: #10b981; }
+
+/* ── Module Badge ─────────────────────────── */
+.kx-module-badge {
+  display: inline-flex; align-items: center; gap: .3rem;
+  padding: .15rem .55rem; border-radius: 6px;
+  font-size: .72rem; font-weight: 600;
+  background: #eef2ff; color: #4338ca;
+}
+
+/* ── Module Selection Grid ────────────────── */
+.kx-module-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem;
+}
+.kx-module-option {
+  display: flex; flex-direction: column; align-items: center;
+  padding: .65rem .5rem; border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border); cursor: pointer;
+  transition: all var(--transition); background: var(--bg-card);
+  text-align: center; gap: .25rem;
+}
+.kx-module-option:hover {
+  border-color: #6366f1; background: #eef2ff;
+}
+.kx-module-option.active {
+  border-color: #6366f1; background: #eef2ff;
+  box-shadow: 0 0 0 3px rgba(99,102,241,.15);
+}
+.kx-module-option-icon { font-size: 1.35rem; }
+.kx-module-option-label { font-size: .7rem; font-weight: 600; color: var(--text); }
+
+/* ── Status Timeline ──────────────────────── */
+.kx-status-timeline {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  position: relative; padding: 0 .5rem;
+}
+.kx-timeline-step {
+  display: flex; flex-direction: column; align-items: center;
+  position: relative; flex: 1; z-index: 1;
+}
+.kx-timeline-node {
+  width: 42px; height: 42px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; transition: all .3s ease;
+  position: relative; z-index: 2;
+}
+.kx-timeline-label {
+  font-size: .72rem; font-weight: 500; margin-top: .5rem;
+  text-align: center; white-space: nowrap;
+  transition: all .3s ease;
+}
+.kx-timeline-connector {
+  position: absolute; top: 21px; left: calc(50% + 21px);
+  width: calc(100% - 42px); height: 3px;
+  border-radius: 2px; transition: all .3s ease;
+  z-index: 0;
+}
+.kx-timeline-step.current .kx-timeline-node {
+  animation: kx-pulse 2s ease-in-out infinite;
+}
+@keyframes kx-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+/* ── Linked Ticket Card ───────────────────── */
+.kx-linked-ticket {
+  padding: .85rem 1rem; border-radius: var(--radius-sm);
+  background: #eef2ff; border: 1px solid #c7d2fe;
+}
+
+/* ── KareXpert Sidebar Links ──────────────── */
+.kx-sidebar-link.active {
+  background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+  box-shadow: 0 2px 8px rgba(99,102,241,.3) !important;
+}
+
+/* ── Status Quick Buttons ─────────────────── */
+.kx-status-btn {
+  display: flex; align-items: center; gap: .65rem;
+  padding: .6rem .85rem; border-radius: var(--radius-sm);
+  border: 1.5px solid var(--btn-color, #6366f1);
+  background: transparent; color: var(--btn-color, #6366f1);
+  font-size: .8rem; font-weight: 600; cursor: pointer;
+  transition: all var(--transition); font-family: inherit;
+}
+.kx-status-btn:hover:not(:disabled) {
+  background: var(--btn-color, #6366f1); color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+}
+.kx-status-btn.active {
+  background: var(--btn-color, #6366f1); color: #fff;
+  cursor: default;
+}
+.kx-status-btn:disabled { opacity: .85; cursor: default; }
+
