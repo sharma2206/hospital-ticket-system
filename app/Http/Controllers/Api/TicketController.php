@@ -97,7 +97,6 @@ class TicketController
             // Admin sees all tickets — no restriction
         } elseif ($this->user && $this->user->hasRole('it_staff')) {
             // IT staff sees tickets from all departments
-            // but can filter to only their assigned tickets
             if ($request->filled('my_tickets')) {
                 $query->where('assigned_to', $this->userId);
             }

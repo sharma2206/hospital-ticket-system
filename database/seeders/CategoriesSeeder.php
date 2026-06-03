@@ -2,13 +2,12 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Category;
 
 class CategoriesSeeder extends Seeder
 {
-    public function run(): void
+    public function run()
     {
         $categories = [
             // Internal IT categories

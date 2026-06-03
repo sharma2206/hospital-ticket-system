@@ -2,26 +2,29 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Department;
 
 class DepartmentsSeeder extends Seeder
 {
-    public function run(): void
+    public function run()
     {
         $departments = [
-            ['name' => 'Billing',           'code' => 'BILL',  'location' => 'Ground Floor'],
-            ['name' => 'Pharmacy',          'code' => 'PHRM',  'location' => 'Ground Floor'],
-            ['name' => 'OPD',               'code' => 'OPD',   'location' => 'First Floor'],
-            ['name' => 'Radiology',         'code' => 'RAD',   'location' => 'Second Floor'],
-            ['name' => 'ICU',               'code' => 'ICU',   'location' => 'Third Floor'],
-            ['name' => 'Laboratory',        'code' => 'LAB',   'location' => 'Ground Floor'],
-            ['name' => 'Operation Theatre', 'code' => 'OT',    'location' => 'Third Floor'],
-            ['name' => 'Emergency',         'code' => 'EMG',   'location' => 'Ground Floor'],
-            ['name' => 'Administration',    'code' => 'ADMIN', 'location' => 'First Floor'],
-            ['name' => 'IT',                'code' => 'IT',    'location' => 'First Floor'],
-            ['name' => 'HR',                'code' => 'HR',    'location' => 'First Floor'],
+            ['name' => 'Billing',           'code' => 'BILL'],
+            ['name' => 'Pharmacy',          'code' => 'PHRM'],
+            ['name' => 'OPD',               'code' => 'OPD'],
+            ['name' => 'ICU',               'code' => 'ICU'],
+            ['name' => 'Laboratory',        'code' => 'LAB'],
+            ['name' => 'Operation Theatre', 'code' => 'OT'],
+            ['name' => 'IT',                'code' => 'IT'],
+            ['name' => 'HR',                'code' => 'HR'],
+            ['name' => 'ADT',               'code' => 'ADT'],
+            ['name' => 'Accounts',          'code' => 'ACT'],
+            ['name' => 'Security',          'code' => 'SEC'],
+            ['name' => 'Housekeeping',      'code' => 'HK'],
+            ['name' => 'Maintenance',       'code' => 'MNT'],
+            ['name' => 'Bio-Medical',       'code' => 'BM'],
+            ['name' => 'Transport',         'code' => 'TRN'],
         ];
 
         foreach ($departments as $department) {
