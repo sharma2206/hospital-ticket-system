@@ -1,156 +1,211 @@
-import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+
+function SLABadge({ status }) {
+    if (!status) return null;
+    return <span className={`sla-badge sla-${status.status}`}>{status.label}</span>;
+}
 
 export default function TicketList() {
-    const [tickets, setTickets] = useState([]);
-    const [pagination, setPagination] = useState({});
-    const [departments, setDepartments] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [searchParams] = useSearchParams();
+    const { isStaff } = useAuth();
+    const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [search, setSearch] = useState('');
 
-    const [filters, setFilters] = useState({
-        status: searchParams.get('status') || '',
-        priority: searchParams.get('priority') || '',
-        department: searchParams.get('department') || '',
-        search: '',
+    const filters = {
+        status_id:    searchParams.get('status_id') || '',
+        priority_id:  searchParams.get('priority_id') || '',
+        department_id:searchParams.get('department_id') || '',
+        branch_id:    searchParams.get('branch_id') || '',
+        assigned_to:  searchParams.get('assigned_to') || '',
         is_escalated: searchParams.get('is_escalated') || '',
-        my_tickets: searchParams.get('my_tickets') || '',
-        page: 1,
-    });
-
-    useEffect(() => {
-        api.get('/departments').then(res => setDepartments(res.data.data || [])).catch(() => {});
-    }, []);
-
-    const fetchTickets = () => {
-        setLoading(true);
-        const params = {};
-        Object.entries(filters).forEach(([k, v]) => { if (v) params[k] = v; });
-        api.get('/tickets', { params })
-            .then(res => {
-                setTickets(res.data.data || []);
-                setPagination(res.data.pagination || {});
-            })
-            .catch(() => {})
-            .finally(() => setLoading(false));
+        sla_breached: searchParams.get('sla_breached') || '',
+        my_tickets:   searchParams.get('my_tickets') || '',
+        sort_by:      searchParams.get('sort_by') || 'created_at',
+        sort_order:   searchParams.get('sort_order') || 'desc',
+        page:         searchParams.get('page') || 1,
+        per_page:     searchParams.get('per_page') || 15,
+        search:       searchParams.get('search') || '',
     };
 
-    useEffect(() => { fetchTickets(); }, [filters]);
+    const { data, isLoading, refetch } = useQuery({
+        queryKey: ['tickets', filters],
+        queryFn: () => api.get('/tickets', { params: filters }).then(r => r.data),
+        keepPreviousData: true,
+    });
 
-    const setFilter = (key, value) => setFilters(f => ({...f, [key]: value, page: 1}));
+    const { data: statusData } = useQuery({ queryKey: ['ticket-statuses'], queryFn: () => api.get('/ticket-statuses').then(r => r.data) });
+    const { data: priorityData } = useQuery({ queryKey: ['priorities'], queryFn: () => api.get('/priorities').then(r => r.data) });
+    const { data: deptData } = useQuery({ queryKey: ['departments'], queryFn: () => api.get('/departments').then(r => r.data) });
+    const { data: branchData } = useQuery({ queryKey: ['branches'], queryFn: () => api.get('/branches').then(r => r.data) });
+
+    const setFilter = (key, val) => {
+        const p = new URLSearchParams(searchParams);
+        if (val) p.set(key, val); else p.delete(key);
+        p.set('page', 1);
+        setSearchParams(p);
+    };
+
+    const clearFilters = () => setSearchParams({});
+
+    const doSearch = (e) => {
+        e.preventDefault();
+        setFilter('search', search);
+    };
+
+    const tickets = data?.data || [];
+    const pagination = data?.pagination || {};
 
     return (
         <div>
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">
-                        {filters.my_tickets ? 'My Assigned Tickets' : filters.is_escalated ? 'Escalated Tickets' : 'All Tickets'}
-                    </h1>
-                    <p className="page-subtitle">{pagination.total || 0} tickets found</p>
+                    <div className="page-title">🎫 Tickets</div>
+                    <div className="page-subtitle">{pagination.total ?? 0} total tickets</div>
                 </div>
                 <Link to="/tickets/create" className="btn btn-primary">➕ Raise Ticket</Link>
             </div>
 
             {/* Filters */}
-            <div className="filters-bar">
-                <div className="search-wrapper">
-                    <span className="search-icon">🔍</span>
-                    <input type="text" className="search-input" placeholder="Search tickets..."
-                        value={filters.search}
-                        onChange={e => setFilter('search', e.target.value)} />
+            <div className="card" style={{marginBottom:'1rem', padding:'1rem'}}>
+                <div style={{display:'flex', gap:'.75rem', flexWrap:'wrap', alignItems:'flex-end'}}>
+                    <form onSubmit={doSearch} style={{display:'flex', gap:'.4rem', flex:1, minWidth:200}}>
+                        <input
+                            className="form-control"
+                            placeholder="Search tickets, #number, requester..."
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            style={{flex:1}}
+                        />
+                        <button className="btn btn-secondary btn-sm" type="submit">🔍</button>
+                    </form>
+
+                    <select className="form-control" style={{width:'auto'}} value={filters.status_id} onChange={e => setFilter('status_id', e.target.value)}>
+                        <option value="">All Status</option>
+                        {statusData?.data?.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+
+                    <select className="form-control" style={{width:'auto'}} value={filters.priority_id} onChange={e => setFilter('priority_id', e.target.value)}>
+                        <option value="">All Priority</option>
+                        {priorityData?.data?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+
+                    <select className="form-control" style={{width:'auto'}} value={filters.department_id} onChange={e => setFilter('department_id', e.target.value)}>
+                        <option value="">All Departments</option>
+                        {deptData?.data?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    </select>
+
+                    {isStaff() && (
+                        <>
+                            <select className="form-control" style={{width:'auto'}} value={filters.branch_id} onChange={e => setFilter('branch_id', e.target.value)}>
+                                <option value="">All Branches</option>
+                                {branchData?.data?.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                            </select>
+                            <select className="form-control" style={{width:'auto'}} value={filters.is_escalated} onChange={e => setFilter('is_escalated', e.target.value)}>
+                                <option value="">Escalation</option>
+                                <option value="1">Escalated Only</option>
+                            </select>
+                            <select className="form-control" style={{width:'auto'}} value={filters.sla_breached} onChange={e => setFilter('sla_breached', e.target.value)}>
+                                <option value="">SLA</option>
+                                <option value="1">Breached Only</option>
+                            </select>
+                        </>
+                    )}
+
+                    <button className="btn btn-secondary btn-sm" onClick={clearFilters}>Clear</button>
                 </div>
-                <select className="filter-select" value={filters.status} onChange={e => setFilter('status', e.target.value)}>
-                    <option value="">All Status</option>
-                    <option value="open">Open</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="resolved">Resolved</option>
-                    <option value="closed">Closed</option>
-                </select>
-                <select className="filter-select" value={filters.priority} onChange={e => setFilter('priority', e.target.value)}>
-                    <option value="">All Priority</option>
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                    <option value="critical">Critical</option>
-                </select>
-                <select className="filter-select" value={filters.department} onChange={e => setFilter('department', e.target.value)}>
-                    <option value="">All Departments</option>
-                    {departments.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
-                </select>
-                {(filters.status || filters.priority || filters.department || filters.search) && (
-                    <button className="btn btn-secondary btn-sm"
-                        onClick={() => setFilters({status:'',priority:'',department:'',search:'',is_escalated:'',my_tickets:'',page:1})}>
-                        ✕ Clear
-                    </button>
-                )}
             </div>
 
             {/* Table */}
             <div className="card">
                 <div className="table-wrapper">
-                    {loading ? (
-                        <div className="loading-screen" style={{minHeight:200}}><div className="spinner" /></div>
-                    ) : tickets.length === 0 ? (
-                        <div className="empty-state">
-                            <div className="empty-state-icon">🎫</div>
-                            <div className="empty-state-title">No tickets found</div>
-                            <p style={{color:'var(--text-muted)',fontSize:'.85rem'}}>Try adjusting your filters or create a new ticket</p>
-                        </div>
-                    ) : (
-                        <table className="table">
-                            <thead>
-                                <tr>
-                                    <th>Ticket #</th>
-                                    <th>Title</th>
-                                    <th>Department</th>
-                                    <th>Category</th>
-                                    <th>Priority</th>
-                                    <th>Status</th>
-                                    <th>Assigned To</th>
-                                    <th>Created</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {tickets.map(t => (
-                                    <tr key={t.id}>
-                                        <td><Link to={`/tickets/${t.id}`} className="table-link">{t.ticket_number}</Link></td>
-                                        <td style={{maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.title}</td>
-                                        <td>{t.department?.name || '—'}</td>
-                                        <td><span style={{fontSize:'.8rem',color:'var(--text-muted)'}}>{t.category?.name || '—'}</span></td>
-                                        <td><span className={`badge badge-${t.priority?.name || 'medium'}`}>{t.priority?.name || '—'}</span></td>
-                                        <td>
-                                            <span className={`badge badge-${t.status?.name || 'open'}`}>
-                                                <span className={`badge-dot badge-dot-${t.status?.name || 'open'}`}></span>
-                                                {(t.status?.name || 'open').replace('_',' ')}
-                                            </span>
-                                        </td>
-                                        <td>{t.assignee ? `${t.assignee.first_name} ${t.assignee.last_name}` : <span style={{color:'var(--text-light)'}}>Unassigned</span>}</td>
-                                        <td style={{whiteSpace:'nowrap',fontSize:'.8rem',color:'var(--text-muted)'}}>
-                                            {new Date(t.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
-                                        </td>
+                    <table className="table">
+                        <thead>
+                            <tr>
+                                <th>Ticket #</th>
+                                <th>Title</th>
+                                <th>Department</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>SLA</th>
+                                {isStaff() && <th>Assigned To</th>}
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {isLoading ? (
+                                Array(5).fill(0).map((_, i) => (
+                                    <tr key={i}>
+                                        {Array(9).fill(0).map((_, j) => (
+                                            <td key={j}><div className="skeleton skeleton-text" /></td>
+                                        ))}
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
+                                ))
+                            ) : tickets.length ? tickets.map(t => (
+                                <tr key={t.id}>
+                                    <td>
+                                        <Link to={`/tickets/${t.id}`} className="table-link" style={{fontFamily:'monospace', fontSize:'.8rem'}}>
+                                            {t.ticket_number}
+                                        </Link>
+                                        {t.is_escalated && <span style={{marginLeft:'.3rem', fontSize:'.7rem'}}>🚨</span>}
+                                    </td>
+                                    <td style={{maxWidth:220, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                                        <Link to={`/tickets/${t.id}`} className="table-link">{t.title}</Link>
+                                    </td>
+                                    <td><span style={{fontSize:'.8rem'}}>{t.department?.name || '—'}</span></td>
+                                    <td>
+                                        <span className="badge" style={{background:t.priority?.color+'20', color:t.priority?.color}}>
+                                            {t.priority?.name}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span className="badge" style={{background:t.status?.color+'20', color:t.status?.color}}>
+                                            {t.status?.name}
+                                        </span>
+                                    </td>
+                                    <td><SLABadge status={t.sla_status} /></td>
+                                    {isStaff() && (
+                                        <td style={{fontSize:'.8rem'}}>
+                                            {t.assignee ? `${t.assignee.first_name} ${t.assignee.last_name}` : <span style={{color:'var(--text-light)'}}>Unassigned</span>}
+                                        </td>
+                                    )}
+                                    <td style={{fontSize:'.78rem', color:'var(--text-muted)'}}>
+                                        {new Date(t.created_at).toLocaleDateString()}
+                                    </td>
+                                    <td>
+                                        <div className="action-btns">
+                                            <Link to={`/tickets/${t.id}`} className="btn btn-secondary btn-xs">View</Link>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )) : (
+                                <tr><td colSpan={9} style={{textAlign:'center', padding:'3rem', color:'var(--text-muted)'}}>
+                                    <div style={{fontSize:'2rem', marginBottom:'.5rem'}}>🎫</div>
+                                    No tickets found. <Link to="/tickets/create">Raise one?</Link>
+                                </td></tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
 
                 {/* Pagination */}
                 {pagination.last_page > 1 && (
-                    <div className="pagination" style={{padding:'1rem 1.25rem', borderTop:'1px solid var(--border)'}}>
-                        <div className="pagination-info">
+                    <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'1rem 1.25rem', borderTop:'1px solid var(--border)'}}>
+                        <span style={{fontSize:'.82rem', color:'var(--text-muted)'}}>
                             Showing {pagination.from}–{pagination.to} of {pagination.total}
-                        </div>
-                        <div className="pagination-buttons">
-                            <button className="pagination-btn" disabled={pagination.current_page <= 1}
-                                onClick={() => setFilters(f => ({...f, page: f.page - 1}))}>← Prev</button>
-                            {Array.from({length: Math.min(pagination.last_page, 5)}, (_, i) => i + 1).map(p => (
-                                <button key={p} className={`pagination-btn ${pagination.current_page === p ? 'active' : ''}`}
-                                    onClick={() => setFilters(f => ({...f, page: p}))}>{p}</button>
+                        </span>
+                        <div style={{display:'flex', gap:'.4rem'}}>
+                            {Array.from({length: Math.min(pagination.last_page, 10)}, (_, i) => i + 1).map(p => (
+                                <button
+                                    key={p}
+                                    className={`btn btn-sm ${+filters.page === p ? 'btn-primary' : 'btn-secondary'}`}
+                                    onClick={() => setFilter('page', p)}
+                                >{p}</button>
                             ))}
-                            <button className="pagination-btn" disabled={pagination.current_page >= pagination.last_page}
-                                onClick={() => setFilters(f => ({...f, page: f.page + 1}))}>Next →</button>
                         </div>
                     </div>
                 )}

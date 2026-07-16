@@ -1,7 +1,10 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 
 const AuthContext = createContext();
+
+const STAFF_ROLES = ['super_admin', 'admin', 'it_manager', 'team_lead', 'technician', 'it_staff'];
+const MANAGER_ROLES = ['super_admin', 'admin', 'it_manager'];
 
 export function AuthProvider({ children }) {
     const [user, setUser]       = useState(null);
@@ -39,16 +42,34 @@ export function AuthProvider({ children }) {
         setUser(null);
     };
 
-    const hasRole = (role) => {
+    const hasRole = useCallback((role) => {
         if (!user) return false;
-        if (Array.isArray(role)) return role.includes(user.role);
-        return user.role === role;
-    };
+        const userRoles = user.roles?.map(r => r.name) || [user.role].filter(Boolean);
+        if (Array.isArray(role)) return role.some(r => userRoles.includes(r));
+        return userRoles.includes(role);
+    }, [user]);
 
-    const isStaff = () => hasRole(['admin', 'it_staff']);
+    const hasPermission = useCallback((permission) => {
+        if (!user) return false;
+        const permissions = user.permissions?.map(p => p.name) || [];
+        return permissions.includes(permission);
+    }, [user]);
+
+    const isStaff = useCallback(() => hasRole(STAFF_ROLES), [hasRole]);
+    const isManager = useCallback(() => hasRole(MANAGER_ROLES), [hasRole]);
+    const isSuperAdmin = useCallback(() => hasRole('super_admin'), [hasRole]);
+
+    const getUserRoleName = useCallback(() => {
+        if (!user) return 'User';
+        const roles = user.roles?.map(r => r.name) || [user.role].filter(Boolean);
+        return roles[0]?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'User';
+    }, [user]);
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading, hasRole, isStaff }}>
+        <AuthContext.Provider value={{
+            user, login, logout, loading,
+            hasRole, hasPermission, isStaff, isManager, isSuperAdmin, getUserRoleName
+        }}>
             {children}
         </AuthContext.Provider>
     );

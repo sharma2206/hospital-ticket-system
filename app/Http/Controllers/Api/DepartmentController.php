@@ -2,68 +2,70 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
 use App\Models\Department;
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
-class DepartmentController
+class DepartmentController extends Controller
 {
-    public function index()
+    public function index(Request $request): JsonResponse
     {
-        $departments = Department::where('is_active', true)
-            ->get();
+        $query = Department::query();
+
+        if ($request->filled('search')) {
+            $query->where('name', 'like', "%{$request->search}%");
+        }
+        if ($request->boolean('active')) {
+            $query->where('is_active', true);
+        }
+
+        $departments = $query->withCount('tickets')->orderBy('name')->get();
 
         return response()->json(['data' => $departments]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
-
         $validated = $request->validate([
-            'name' => 'required|string|unique:departments',
-            'code' => 'required|string|unique:departments',
-            'description' => 'nullable|string',
-            'phone' => 'nullable|string',
+            'name'       => 'required|string|max:150|unique:departments,name',
+            'code'       => 'nullable|string|max:20|unique:departments,code',
+            'branch_id'  => 'nullable|exists:branches,id',
             'manager_id' => 'nullable|exists:users,id',
-            'location' => 'nullable|string',
+            'is_active'  => 'boolean',
         ]);
 
-        $department = Department::create($validated);
+        $dept = Department::create($validated);
 
-        return response()->json([
-            'message' => 'Department created successfully',
-            'data' => $department,
-        ], 201);
-    }
-
-    public function show(Department $department)
-    {
-        return response()->json([
-            'data' => $department->load('manager', 'users'),
+        AuditLog::record('created', 'departments', [
+            'model_type' => Department::class,
+            'model_id'   => $dept->id,
         ]);
+
+        return response()->json(['message' => 'Department created', 'data' => $dept], 201);
     }
 
-    public function update(Request $request, Department $department)
+    public function update(Request $request, Department $department): JsonResponse
     {
-
         $validated = $request->validate([
-            'name' => 'sometimes|string|unique:departments,name,' . $department->id,
-            'description' => 'sometimes|string',
-            'phone' => 'sometimes|nullable|string',
-            'manager_id' => 'sometimes|nullable|exists:users,id',
-            'location' => 'sometimes|nullable|string',
+            'name'       => "sometimes|string|max:150|unique:departments,name,{$department->id}",
+            'code'       => "nullable|string|max:20|unique:departments,code,{$department->id}",
+            'branch_id'  => 'nullable|exists:branches,id',
+            'manager_id' => 'nullable|exists:users,id',
+            'is_active'  => 'boolean',
         ]);
 
         $department->update($validated);
+        AuditLog::record('updated', 'departments', ['model_type' => Department::class, 'model_id' => $department->id]);
 
-        return response()->json([
-            'message' => 'Department updated successfully',
-            'data' => $department,
-        ]);
+        return response()->json(['message' => 'Department updated', 'data' => $department]);
     }
 
-    public function destroy(Department $department)
+    public function destroy(Department $department): JsonResponse
     {
-        $department->update(['is_active' => false]);
-        return response()->json(['message' => 'Department deactivated successfully']);
+        $department->delete();
+        AuditLog::record('deleted', 'departments', ['model_type' => Department::class, 'model_id' => $department->id]);
+        return response()->json(['message' => 'Department deleted']);
     }
 }

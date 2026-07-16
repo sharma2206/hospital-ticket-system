@@ -2,88 +2,101 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreTicketRequest;
+use App\Http\Requests\UpdateTicketRequest;
+use App\Http\Requests\AssignTicketRequest;
 use App\Models\Ticket;
-use App\Models\TicketHistory;
-use App\Models\Notification;
+use App\Models\TicketStatus;
+use App\Models\AuditLog;
+use App\Services\TicketService;
+use App\Services\SLAService;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
-class TicketController
+class TicketController extends Controller
 {
-    public $user;
-    public $userId;
+    public function __construct(
+        private TicketService $ticketService,
+        private SLAService $slaService
+    ) {}
 
-    public function __construct()
+    public function index(Request $request): JsonResponse
     {
-        $this->user     = Auth::user() ?? null;
-        $this->userId   = $this->user ? $this->user->id : null;
-    }
-
-    public function index(Request $request)
-    {
+        $user = Auth::user();
         $query = Ticket::internal();
 
-        // ── Filters ──────────────────────────────────────────
+        // ── Role-based visibility ─────────────────────────────
+        $staffRoles = ['super_admin', 'admin', 'it_manager', 'team_lead', 'technician', 'it_staff'];
+        $isStaff = $user->hasAnyRole($staffRoles);
 
-        // Filter by status_id OR status name
+        if (!$isStaff) {
+            $query->where('created_by', $user->id);
+        } elseif ($request->filled('my_tickets')) {
+            $query->where('assigned_to', $user->id);
+        }
+
+        // ── Filters ───────────────────────────────────────────
         if ($request->filled('status_id')) {
             $query->where('status_id', $request->status_id);
         } elseif ($request->filled('status')) {
-            $query->whereHas(
-                'status',
-                fn($q) =>
-                $q->where('name', $request->status)
-                    ->orWhere('code', strtoupper($request->status))
+            $query->whereHas('status', fn($q) =>
+                $q->where('name', $request->status)->orWhere('code', strtoupper($request->status))
             );
         }
 
-        // Filter by priority_id OR priority name
         if ($request->filled('priority_id')) {
             $query->where('priority_id', $request->priority_id);
-        } elseif ($request->filled('priority')) {
-            $query->whereHas(
-                'priority',
-                fn($q) =>
-                $q->where('name', $request->priority)
-                    ->orWhere('code', strtoupper($request->priority))
-            );
         }
 
-        // Filter by department_id OR department name
         if ($request->filled('department_id')) {
             $query->where('department_id', $request->department_id);
-        } elseif ($request->filled('department')) {
-            $query->whereHas(
-                'department',
-                fn($q) =>
-                $q->where('name', $request->department)
-            );
         }
 
-        // Filter by category
+        if ($request->filled('branch_id')) {
+            $query->where('branch_id', $request->branch_id);
+        }
+
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
         }
 
-        // Filter by assigned staff
+        if ($request->filled('sub_category_id')) {
+            $query->where('sub_category_id', $request->sub_category_id);
+        }
+
         if ($request->filled('assigned_to')) {
             $query->where('assigned_to', $request->assigned_to);
         }
 
-        // Filter escalated tickets
-        if ($request->filled('is_escalated')) {
-            $query->where('is_escalated', filter_var($request->is_escalated, FILTER_VALIDATE_BOOLEAN));
+        if ($request->filled('source')) {
+            $query->where('source', $request->source);
         }
 
-        // Search by title or ticket number
+        if ($request->boolean('is_escalated')) {
+            $query->where('is_escalated', true);
+        }
+
+        if ($request->boolean('sla_breached')) {
+            $query->where('sla_breached', true);
+        }
+
+        if ($request->boolean('overdue')) {
+            $query->overdue();
+        }
+
         if ($request->filled('search')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('title', 'like', '%' . $request->search . '%')
-                    ->orWhere('ticket_number', 'like', '%' . $request->search . '%');
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('ticket_number', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('requester_name', 'like', "%{$search}%")
+                  ->orWhere('requester_employee_id', 'like', "%{$search}%");
             });
         }
 
-        // Date range filter
         if ($request->filled('from_date')) {
             $query->whereDate('created_at', '>=', $request->from_date);
         }
@@ -91,47 +104,36 @@ class TicketController
             $query->whereDate('created_at', '<=', $request->to_date);
         }
 
-        // ── Role-based visibility ─────────────────────────────
-
-        if ($this->user && $this->user->hasRole('admin')) {
-            // Admin sees all tickets — no restriction
-        } elseif ($this->user && $this->user->hasRole('it_staff')) {
-            // IT staff sees tickets from all departments
-            if ($request->filled('my_tickets')) {
-                $query->where('assigned_to', $this->userId);
-            }
-        } elseif ($this->user && $this->user->hasRole('user')) {
-            // Regular user sees only their own tickets
-            $query->where('created_by', $this->userId);
-        }
-
-        // ── Sorting ──────────────────────────────────────────
-
-        $sortBy    = $request->get('sort_by', 'created_at');
-        $sortOrder = $request->get('sort_order', 'desc');
-
-        $allowedSorts = ['created_at', 'updated_at', 'title', 'ticket_number'];
-        if (in_array($sortBy, $allowedSorts)) {
-            $query->orderBy($sortBy, $sortOrder === 'asc' ? 'asc' : 'desc');
-        } else {
-            $query->latest();
-        }
-
-        // ── Paginate ─────────────────────────────────────────
+        // ── Sorting ───────────────────────────────────────────
+        $allowed = ['created_at', 'updated_at', 'title', 'ticket_number', 'due_date', 'priority_id'];
+        $sortBy = in_array($request->get('sort_by'), $allowed) ? $request->get('sort_by') : 'created_at';
+        $sortOrder = $request->get('sort_order', 'desc') === 'asc' ? 'asc' : 'desc';
+        $query->orderBy($sortBy, $sortOrder);
 
         $perPage = min((int) $request->get('per_page', 15), 100);
 
         $tickets = $query->with([
-            'creator:id,first_name,last_name,department_id',
-            'assignee:id,first_name,last_name',
+            'creator:id,first_name,last_name,employee_id',
+            'assignee:id,first_name,last_name,employee_id',
+            'teamLead:id,first_name,last_name',
             'category:id,name,code',
-            'priority:id,name,level,description,color',
+            'subCategory:id,name',
+            'priority:id,name,level,color',
             'status:id,name,code,color',
             'department:id,name,code',
+            'branch:id,name,code',
+            'asset:id,asset_code,name',
+            'vendor:id,name',
         ])->paginate($perPage);
 
+        // Append SLA status to each ticket
+        $items = collect($tickets->items())->map(function ($ticket) {
+            $ticket->sla_status = $this->slaService->getSLAStatus($ticket);
+            return $ticket;
+        });
+
         return response()->json([
-            'data' => $tickets->items(),
+            'data' => $items,
             'pagination' => [
                 'total'        => $tickets->total(),
                 'per_page'     => $tickets->perPage(),
@@ -143,135 +145,242 @@ class TicketController
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreTicketRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'category_id' => 'required|exists:categories,id',
-            'department_id' => 'required|exists:departments,id',
-            'priority_id' => 'required|exists:priorities,id',
-        ]);
+        $data = $request->validated();
+        $data['source'] = $data['source'] ?? 'self_service';
 
-        $ticket = Ticket::create([
-            ...$validated,
-            'ticket_number' => 'TKT-' . date('Ymd') . '-' . str_pad(Ticket::count() + 1, 5, '0', STR_PAD_LEFT),
-            'created_by' => $this->userId,
-            'status_id' => 1, // Open status
-        ]);
+        $ticket = $this->ticketService->createTicket($data, Auth::id());
 
-        // Notify department
-        // Notification::create([
-        //     'user_id'   => $ticket->department->manager_id,
-        //     'ticket_id' => $ticket->id,
-        //     'type'      => 'ticket_created',
-        //     'title'     => 'New Ticket Created',
-        //     'message'   => 'A new ticket has been created: ' . $ticket->title,
-        // ]);
+        // Handle file attachments
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $this->ticketService->storeAttachment($ticket, $file, Auth::id());
+            }
+        }
 
         return response()->json([
             'message' => 'Ticket created successfully',
-            'data' => $ticket->load(['creator', 'category', 'priority', 'status', 'department']),
+            'data'    => $ticket->load([
+                'creator', 'category', 'subCategory', 'priority', 'status', 'department', 'branch',
+            ]),
         ], 201);
     }
 
-    // Simple version without policy
-    public function show(Ticket $ticket)
+    public function show(Ticket $ticket): JsonResponse
     {
-        $user = request()->user();
+        $user = Auth::user();
+        $staffRoles = ['super_admin', 'admin', 'it_manager', 'team_lead', 'technician', 'it_staff'];
 
-        // Users can only view their own tickets
-        if ($user && $user->hasRole('user') && $ticket->created_by !== $user->id) {
+        if (!$user->hasAnyRole($staffRoles) && $ticket->created_by !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        return response()->json(
-            $ticket->load([
-                'creator:id,first_name,last_name,department_id',
-                'assignee:id,first_name,last_name,department_id',
-                'comments.user:id,first_name,last_name',
-            ])
-        );
+        $ticket->load([
+            'creator:id,first_name,last_name,employee_id,email,phone',
+            'assignee:id,first_name,last_name,employee_id,email,phone',
+            'teamLead:id,first_name,last_name',
+            'category:id,name,code',
+            'subCategory:id,name,code',
+            'priority:id,name,level,color,description',
+            'status:id,name,code,color',
+            'department:id,name,code',
+            'branch:id,name,code',
+            'asset:id,asset_code,name,brand,model',
+            'vendor:id,name,contact_person,email,phone',
+            'comments.user:id,first_name,last_name',
+            'attachments',
+            'history.changer:id,first_name,last_name',
+            'watchers:id,first_name,last_name,email',
+            'knowledgeArticles:id,title,slug,status',
+            'childTickets:id,ticket_number,title,status_id',
+            'parentTicket:id,ticket_number,title',
+            'feedback',
+        ]);
+
+        $ticket->sla_status = $this->slaService->getSLAStatus($ticket);
+
+        return response()->json(['data' => $ticket]);
     }
 
-    public function update(Request $request, Ticket $ticket)
+    public function update(UpdateTicketRequest $request, Ticket $ticket): JsonResponse
     {
+        $user = Auth::user();
+        $staffRoles = ['super_admin', 'admin', 'it_manager', 'team_lead', 'technician', 'it_staff'];
 
-        $validated = $request->validate([
-            'title' => 'sometimes|string|max:255',
-            'description' => 'sometimes|string',
-            'category_id' => 'sometimes|exists:categories,id',
-            'priority_id' => 'sometimes|exists:priorities,id',
-            'assigned_to' => 'sometimes|nullable|exists:users,id',
-        ]);
+        if (!$user->hasAnyRole($staffRoles) && $ticket->created_by !== $user->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
 
-        $ticket->update($validated);
-
-        TicketHistory::create([
-            'ticket_id' => $ticket->id,
-            'change_type' => 'update',
-            'changed_by' => $this->userId,
-            'description' => 'Ticket updated',
-        ]);
+        $ticket = $this->ticketService->updateTicket($ticket, $request->validated(), $user->id);
 
         return response()->json([
             'message' => 'Ticket updated successfully',
-            'data' => $ticket,
+            'data'    => $ticket->load(['category', 'subCategory', 'priority', 'status', 'department']),
         ]);
     }
 
-    public function updateStatus(Request $request, Ticket $ticket)
+    public function updateStatus(Request $request, Ticket $ticket): JsonResponse
     {
         $validated = $request->validate([
-            'status_id' => 'required|exists:ticket_statuses,id',
+            'status_id'      => 'required|exists:ticket_statuses,id',
+            'resolution_notes'=> 'nullable|string',
+            'root_cause'     => 'nullable|string',
+            'closure_notes'  => 'nullable|string',
         ]);
 
-        $oldStatus = $ticket->status_id;
-        $ticket->update(['status_id' => $validated['status_id']]);
+        $user = Auth::user();
+        $newStatus = TicketStatus::find($validated['status_id']);
+        $old = $ticket->status_id;
 
-        TicketHistory::create([
-            'ticket_id' => $ticket->id,
-            'change_type' => 'status_change',
-            'old_value' => $oldStatus,
-            'new_value' => $validated['status_id'],
-            'changed_by' => $this->userId,
-        ]);
+        $ticket->update(array_filter([
+            'status_id'       => $validated['status_id'],
+            'resolution_notes'=> $validated['resolution_notes'] ?? null,
+            'root_cause'      => $validated['root_cause'] ?? null,
+            'closure_notes'   => $validated['closure_notes'] ?? null,
+            'resolved_at'     => in_array($newStatus?->code, ['RESOLVED', 'CLOSED']) ? ($ticket->resolved_at ?? now()) : null,
+            'closed_at'       => $newStatus?->code === 'CLOSED' ? now() : null,
+            'first_response_at' => $ticket->first_response_at ?? (in_array($newStatus?->code, ['IN_PROGRESS']) ? now() : null),
+        ], fn($v) => $v !== null));
 
-        // Notify creator
-        Notification::create([
-            'user_id' => $ticket->created_by,
+        $ticket->recordHistory('status_change', $user->id, $old, $validated['status_id']);
+
+        \App\Models\Notification::create([
+            'user_id'   => $ticket->created_by,
             'ticket_id' => $ticket->id,
-            'type' => 'status_changed',
-            'title' => 'Ticket Status Updated',
-            'message' => 'Your ticket status has been updated to: ' . $ticket->status->name,
+            'type'      => 'status_changed',
+            'title'     => 'Ticket Status Updated',
+            'message'   => "Ticket {$ticket->ticket_number} status changed to: {$newStatus?->name}",
         ]);
 
         return response()->json([
             'message' => 'Status updated successfully',
-            'data' => $ticket,
+            'data'    => $ticket->load(['status', 'priority']),
         ]);
     }
 
-    public function escalate(Request $request, Ticket $ticket)
+    public function assign(AssignTicketRequest $request, Ticket $ticket): JsonResponse
     {
-        $ticket->escalate($request->input('reason'));
+        $ticket = $this->ticketService->assignTicket(
+            $ticket,
+            $request->assigned_to,
+            $request->team_lead_id,
+            Auth::id()
+        );
 
-        TicketHistory::create([
-            'ticket_id' => $ticket->id,
-            'change_type' => 'escalation',
-            'changed_by' => $this->userId,
-            'description' => $request->input('reason'),
+        return response()->json([
+            'message' => 'Ticket assigned successfully',
+            'data'    => $ticket->load(['assignee', 'teamLead', 'status']),
         ]);
+    }
+
+    public function escalate(Request $request, Ticket $ticket): JsonResponse
+    {
+        $request->validate(['reason' => 'nullable|string|max:500']);
+        $ticket = $this->ticketService->escalateTicket($ticket, Auth::id(), $request->reason);
 
         return response()->json([
             'message' => 'Ticket escalated successfully',
-            'data' => $ticket,
+            'data'    => $ticket,
         ]);
     }
 
-    public function destroy(Ticket $ticket)
+    public function reopen(Request $request, Ticket $ticket): JsonResponse
     {
+        $request->validate(['reason' => 'nullable|string|max:500']);
+        $ticket = $this->ticketService->reopenTicket($ticket, Auth::id(), $request->reason);
+
+        return response()->json([
+            'message' => 'Ticket reopened successfully',
+            'data'    => $ticket->load(['status']),
+        ]);
+    }
+
+    public function clone(Ticket $ticket): JsonResponse
+    {
+        $clone = $this->ticketService->cloneTicket($ticket, Auth::id());
+        return response()->json([
+            'message' => 'Ticket cloned successfully',
+            'data'    => $clone->load(['category', 'priority', 'status', 'department']),
+        ], 201);
+    }
+
+    public function merge(Request $request, Ticket $ticket): JsonResponse
+    {
+        $request->validate(['source_ticket_id' => 'required|exists:tickets,id']);
+        $source = Ticket::findOrFail($request->source_ticket_id);
+        $ticket = $this->ticketService->mergeTickets($ticket, $source, Auth::id());
+
+        return response()->json([
+            'message' => 'Tickets merged successfully',
+            'data'    => $ticket,
+        ]);
+    }
+
+    public function addWatcher(Request $request, Ticket $ticket): JsonResponse
+    {
+        $request->validate(['user_id' => 'required|exists:users,id']);
+        $ticket->watchers()->syncWithoutDetaching([$request->user_id]);
+
+        return response()->json(['message' => 'Watcher added successfully']);
+    }
+
+    public function removeWatcher(Request $request, Ticket $ticket): JsonResponse
+    {
+        $request->validate(['user_id' => 'required|exists:users,id']);
+        $ticket->watchers()->detach($request->user_id);
+
+        return response()->json(['message' => 'Watcher removed successfully']);
+    }
+
+    public function uploadAttachment(Request $request, Ticket $ticket): JsonResponse
+    {
+        $request->validate([
+            'file' => 'required|file|max:10240|mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,zip,txt,log',
+        ]);
+
+        $attachment = $this->ticketService->storeAttachment($ticket, $request->file('file'), Auth::id());
+
+        return response()->json([
+            'message' => 'Attachment uploaded successfully',
+            'data'    => $attachment,
+        ], 201);
+    }
+
+    public function deleteAttachment(Ticket $ticket, \App\Models\TicketAttachment $attachment): JsonResponse
+    {
+        if ($attachment->ticket_id !== $ticket->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+        \Illuminate\Support\Facades\Storage::disk('public')->delete($attachment->file_path);
+        $attachment->delete();
+
+        return response()->json(['message' => 'Attachment deleted successfully']);
+    }
+
+    public function pauseSLA(Ticket $ticket): JsonResponse
+    {
+        $this->slaService->pauseSLA($ticket);
+        return response()->json(['message' => 'SLA paused', 'data' => $ticket->fresh()]);
+    }
+
+    public function resumeSLA(Ticket $ticket): JsonResponse
+    {
+        $this->slaService->resumeSLA($ticket);
+        return response()->json(['message' => 'SLA resumed', 'data' => $ticket->fresh()]);
+    }
+
+    public function destroy(Ticket $ticket): JsonResponse
+    {
+        $ticketNumber = $ticket->ticket_number;
         $ticket->delete();
+
+        AuditLog::record('deleted', 'tickets', [
+            'model_type'  => Ticket::class,
+            'model_id'    => $ticket->id,
+            'description' => "Ticket {$ticketNumber} deleted",
+        ]);
+
         return response()->json(['message' => 'Ticket deleted successfully']);
     }
 }
