@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\CommentController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\SubCategoryController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\PriorityController;
 use App\Http\Controllers\Api\UserController;
@@ -61,13 +62,37 @@ Route::middleware('auth:api')->group(function () {
     Route::put('/comments/{comment}',         [CommentController::class, 'update']);
     Route::delete('/comments/{comment}',      [CommentController::class, 'destroy']);
 
-    // ── Lookup / Reference Data ────────────────────────────────────
-    Route::get('/categories',      [CategoryController::class, 'index']);
-    Route::get('/sub-categories',  function () {
-        $catId = request('category_id');
-        $query = \App\Models\SubCategory::active()->orderBy('sort_order');
-        if ($catId) $query->where('category_id', $catId);
-        return response()->json(['data' => $query->get()]);
+    // ── Categories ─────────────────────────────────────────────────
+    Route::get('/categories',                            [CategoryController::class, 'index']);
+    Route::post('/categories',                           [CategoryController::class, 'store'])->middleware('role:super_admin|admin');
+    Route::get('/categories/{category}',                 [CategoryController::class, 'show']);
+    Route::put('/categories/{category}',                 [CategoryController::class, 'update'])->middleware('role:super_admin|admin');
+    Route::patch('/categories/{category}/toggle-active', [CategoryController::class, 'toggleActive'])->middleware('role:super_admin|admin');
+    Route::delete('/categories/{category}',              [CategoryController::class, 'destroy'])->middleware('role:super_admin|admin');
+
+    // ── Subcategories ──────────────────────────────────────────────
+    Route::get('/sub-categories',                                [SubCategoryController::class, 'index']);
+    Route::post('/sub-categories',                               [SubCategoryController::class, 'store'])->middleware('role:super_admin|admin');
+    Route::get('/sub-categories/{subCategory}',                  [SubCategoryController::class, 'show']);
+    Route::put('/sub-categories/{subCategory}',                  [SubCategoryController::class, 'update'])->middleware('role:super_admin|admin');
+    Route::patch('/sub-categories/{subCategory}/toggle-active',  [SubCategoryController::class, 'toggleActive'])->middleware('role:super_admin|admin');
+    Route::delete('/sub-categories/{subCategory}',               [SubCategoryController::class, 'destroy'])->middleware('role:super_admin|admin');
+
+    // ── Admin Category/Subcategory Aliases ──────────────────────────
+    Route::prefix('admin')->middleware('role:super_admin|admin')->group(function () {
+        Route::get('/categories',                            [CategoryController::class, 'index']);
+        Route::post('/categories',                           [CategoryController::class, 'store']);
+        Route::get('/categories/{category}',                 [CategoryController::class, 'show']);
+        Route::put('/categories/{category}',                 [CategoryController::class, 'update']);
+        Route::patch('/categories/{category}/toggle-active', [CategoryController::class, 'toggleActive']);
+        Route::delete('/categories/{category}',              [CategoryController::class, 'destroy']);
+
+        Route::get('/sub-categories',                                [SubCategoryController::class, 'index']);
+        Route::post('/sub-categories',                               [SubCategoryController::class, 'store']);
+        Route::get('/sub-categories/{subCategory}',                  [SubCategoryController::class, 'show']);
+        Route::put('/sub-categories/{subCategory}',                  [SubCategoryController::class, 'update']);
+        Route::patch('/sub-categories/{subCategory}/toggle-active',  [SubCategoryController::class, 'toggleActive']);
+        Route::delete('/sub-categories/{subCategory}',               [SubCategoryController::class, 'destroy']);
     });
     Route::get('/priorities',      [PriorityController::class, 'index']);
     Route::get('/ticket-statuses', fn() => response()->json(['data' => \App\Models\TicketStatus::orderBy('order')->get()]));

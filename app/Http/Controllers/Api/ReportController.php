@@ -32,6 +32,12 @@ class ReportController extends Controller
         if ($request->filled('branch_id')) {
             $base->where('tickets.branch_id', $request->branch_id);
         }
+        if ($request->filled('category_id')) {
+            $base->where('tickets.category_id', $request->category_id);
+        }
+        if ($request->filled('sub_category_id')) {
+            $base->where('tickets.sub_category_id', $request->sub_category_id);
+        }
 
         $total    = (clone $base)->count();
         $resolved = (clone $base)->whereHas('status', fn($q) => $q->where('code', 'RESOLVED'))->count();

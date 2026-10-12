@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use App\Models\Ticket;
 
 class UpdateTicketRequest extends FormRequest
 {
@@ -13,11 +15,23 @@ class UpdateTicketRequest extends FormRequest
 
     public function rules(): array
     {
+        $ticket = $this->route('ticket');
+        $currentCategoryId = $ticket instanceof Ticket ? $ticket->category_id : ($ticket ? Ticket::find($ticket)?->category_id : null);
+        $targetCategoryId = $this->category_id ?? $currentCategoryId;
+
         return [
             'title'                 => 'sometimes|string|max:255',
             'description'           => 'sometimes|string|min:10',
             'category_id'           => 'sometimes|exists:categories,id',
-            'sub_category_id'       => 'nullable|exists:sub_categories,id',
+            'sub_category_id'       => [
+                'nullable',
+                Rule::exists('sub_categories', 'id')->where(function ($q) use ($targetCategoryId) {
+                    if ($targetCategoryId) {
+                        $q->where('category_id', $targetCategoryId);
+                    }
+                    $q->whereNull('deleted_at');
+                }),
+            ],
             'priority_id'           => 'sometimes|exists:priorities,id',
             'department_id'         => 'sometimes|exists:departments,id',
             'branch_id'             => 'nullable|exists:branches,id',

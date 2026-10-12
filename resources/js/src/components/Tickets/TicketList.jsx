@@ -43,6 +43,8 @@ export default function TicketList() {
     const filters = {
         status_id: searchParams.get("status_id") || "",
         priority_id: searchParams.get("priority_id") || "",
+        category_id: searchParams.get("category_id") || "",
+        sub_category_id: searchParams.get("sub_category_id") || "",
         department_id: searchParams.get("department_id") || "",
         branch_id: searchParams.get("branch_id") || "",
         assigned_to: searchParams.get("assigned_to") || "",
@@ -70,6 +72,20 @@ export default function TicketList() {
     const { data: priorityData } = useQuery({
         queryKey: ["priorities"],
         queryFn: () => api.get("/priorities").then((r) => r.data),
+    });
+    const { data: categoryData } = useQuery({
+        queryKey: ["categories"],
+        queryFn: () => api.get("/categories").then((r) => r.data),
+    });
+    const { data: subCategoryData } = useQuery({
+        queryKey: ["sub-categories", filters.category_id],
+        queryFn: () =>
+            api
+                .get("/sub-categories", {
+                    params: { category_id: filters.category_id },
+                })
+                .then((r) => r.data),
+        enabled: !!filters.category_id,
     });
     const { data: deptData } = useQuery({
         queryKey: ["departments"],
@@ -177,6 +193,41 @@ export default function TicketList() {
                             ))}
                         </select>
 
+                        <select
+                            className="form-control"
+                            value={filters.category_id}
+                            onChange={(e) => {
+                                const p = new URLSearchParams(searchParams);
+                                if (e.target.value) p.set("category_id", e.target.value);
+                                else p.delete("category_id");
+                                p.delete("sub_category_id");
+                                p.set("page", "1");
+                                setSearchParams(p);
+                            }}
+                        >
+                            <option value="">All Categories</option>
+                            {categoryData?.data?.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                    {c.name}
+                                </option>
+                            ))}
+                        </select>
+
+                        {filters.category_id && (
+                            <select
+                                className="form-control"
+                                value={filters.sub_category_id}
+                                onChange={(e) => setFilter("sub_category_id", e.target.value)}
+                            >
+                                <option value="">All Subcategories</option>
+                                {subCategoryData?.data?.map((s) => (
+                                    <option key={s.id} value={s.id}>
+                                        {s.name}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
+
                         {isStaff() && (
                             <>
                                 <select
@@ -277,13 +328,28 @@ export default function TicketList() {
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="max-w-xs truncate font-medium text-slate-800 dark:text-slate-200">
+                                        <td className="max-w-xs font-medium text-slate-800 dark:text-slate-200">
                                             <Link
                                                 to={`/tickets/${t.id}`}
-                                                className="hover:text-blue-600 transition-colors"
+                                                className="hover:text-blue-600 transition-colors block truncate"
                                             >
                                                 {t.title}
                                             </Link>
+                                            {t.category && (
+                                                <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-slate-500 dark:text-slate-400 font-normal truncate">
+                                                    <span className="font-medium text-slate-700 dark:text-slate-300">
+                                                        {t.category.name}
+                                                    </span>
+                                                    {(t.sub_category || t.subCategory) && (
+                                                        <>
+                                                            <span className="text-slate-300 dark:text-slate-600">/</span>
+                                                            <span className="truncate">
+                                                                {(t.sub_category || t.subCategory).name}
+                                                            </span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="text-xs text-slate-600 dark:text-slate-400">
                                             {t.department?.name || "—"}

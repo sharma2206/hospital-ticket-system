@@ -24,6 +24,7 @@ import UsersPage       from './pages/admin/UsersPage';
 import RolesPage       from './pages/admin/RolesPage';
 import DepartmentsPage from './pages/admin/DepartmentsPage';
 import BranchesPage    from './pages/admin/BranchesPage';
+import CategoriesPage  from './pages/admin/CategoriesPage';
 import AuditLogPage    from './pages/admin/AuditLogPage';
 import SettingsPage    from './pages/settings/SettingsPage';
 
@@ -69,6 +70,7 @@ export default function App() {
                             <Route path="/admin/roles"       element={<RolesPage />} />
                             <Route path="/admin/departments" element={<DepartmentsPage />} />
                             <Route path="/admin/branches"    element={<BranchesPage />} />
+                            <Route path="/admin/categories"  element={<CategoriesPage />} />
                             <Route path="/admin/audit-log"   element={<AuditLogPage />} />
 
                             {/* Assets */}

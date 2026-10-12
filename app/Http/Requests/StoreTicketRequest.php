@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreTicketRequest extends FormRequest
 {
@@ -16,8 +17,18 @@ class StoreTicketRequest extends FormRequest
         return [
             'title'                 => 'required|string|max:255',
             'description'           => 'required|string|min:10',
-            'category_id'           => 'required|exists:categories,id',
-            'sub_category_id'       => 'nullable|exists:sub_categories,id',
+            'category_id'           => [
+                'required',
+                Rule::exists('categories', 'id')->where('is_active', true),
+            ],
+            'sub_category_id'       => [
+                'nullable',
+                Rule::exists('sub_categories', 'id')->where(function ($q) {
+                    $q->where('category_id', $this->category_id)
+                      ->where('is_active', true)
+                      ->whereNull('deleted_at');
+                }),
+            ],
             'priority_id'           => 'required|exists:priorities,id',
             'department_id'         => 'required|exists:departments,id',
             'branch_id'             => 'nullable|exists:branches,id',
@@ -45,9 +56,11 @@ class StoreTicketRequest extends FormRequest
             'title.required'       => 'Please provide a ticket title.',
             'description.required' => 'Please describe the issue in detail.',
             'description.min'      => 'Description must be at least 10 characters.',
-            'category_id.required' => 'Please select a category.',
-            'priority_id.required' => 'Please select a priority level.',
-            'department_id.required'=> 'Please select the affected department.',
+            'category_id.required'   => 'Please select a category.',
+            'category_id.exists'     => 'The selected category is invalid or currently inactive.',
+            'sub_category_id.exists' => 'The selected subcategory is invalid, inactive, or does not belong to the selected category.',
+            'priority_id.required'   => 'Please select a priority level.',
+            'department_id.required' => 'Please select the affected department.',
         ];
     }
 }

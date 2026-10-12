@@ -680,8 +680,47 @@ export default function TicketDetail() {
                             Ticket Information
                         </h3>
                         <div className="grid grid-cols-1 gap-3.5 text-sm">
-                            <DetailLabel label="Category" value={data.category?.name} icon={FolderOpen} />
-                            <DetailLabel label="Sub-Category" value={data.sub_category?.name || data.subCategory?.name} />
+                            <DetailLabel
+                                label="Category"
+                                icon={FolderOpen}
+                                value={
+                                    data.category ? (
+                                        <span className="inline-flex items-center gap-1.5">
+                                            {data.category.color && (
+                                                <span
+                                                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                                                    style={{ backgroundColor: data.category.color }}
+                                                />
+                                            )}
+                                            <span>{data.category.name}</span>
+                                            {data.category.is_active === false && (
+                                                <span className="text-[10px] font-normal px-1.5 py-0.2 bg-slate-100 text-slate-500 rounded border border-slate-200">
+                                                    Inactive
+                                                </span>
+                                            )}
+                                        </span>
+                                    ) : (
+                                        "—"
+                                    )
+                                }
+                            />
+                            <DetailLabel
+                                label="Sub-Category"
+                                value={
+                                    (data.sub_category || data.subCategory) ? (
+                                        <span className="inline-flex items-center gap-1.5">
+                                            <span>{(data.sub_category || data.subCategory).name}</span>
+                                            {(data.sub_category || data.subCategory).is_active === false && (
+                                                <span className="text-[10px] font-normal px-1.5 py-0.2 bg-slate-100 text-slate-500 rounded border border-slate-200">
+                                                    Inactive
+                                                </span>
+                                            )}
+                                        </span>
+                                    ) : (
+                                        "—"
+                                    )
+                                }
+                            />
                             <DetailLabel label="Branch / Campus" value={data.branch?.name} icon={Building2} />
                             <DetailLabel label="Request Source" value={data.source} />
                             {data.asset && (

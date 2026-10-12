@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -23,6 +23,7 @@ export default function CreateTicket() {
         register,
         handleSubmit,
         watch,
+        setValue,
         formState: { errors },
     } = useForm({
         defaultValues: {
@@ -37,11 +38,16 @@ export default function CreateTicket() {
     const selectedCategory = watch("category_id");
     const [files, setFiles] = useState([]);
 
-    const { data: categories } = useQuery({
+    // Reset subcategory whenever category changes
+    useEffect(() => {
+        setValue("sub_category_id", "");
+    }, [selectedCategory, setValue]);
+
+    const { data: categories, isLoading: isCategoriesLoading } = useQuery({
         queryKey: ["categories"],
         queryFn: () => api.get("/categories").then((r) => r.data),
     });
-    const { data: subCategories } = useQuery({
+    const { data: subCategories, isLoading: isSubCategoriesLoading } = useQuery({
         queryKey: ["sub-categories", selectedCategory],
         queryFn: () =>
             api
@@ -161,13 +167,28 @@ export default function CreateTicket() {
                                 )}
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Sub-Category</label>
+                                <label className="form-label flex items-center justify-between">
+                                    <span>Sub-Category</span>
+                                    {isSubCategoriesLoading && (
+                                        <span className="text-xs text-blue-500 font-normal flex items-center gap-1">
+                                            <Loader2 size={11} className="animate-spin" /> Loading...
+                                        </span>
+                                    )}
+                                </label>
                                 <select
                                     className="form-control"
                                     {...register("sub_category_id")}
-                                    disabled={!selectedCategory}
+                                    disabled={!selectedCategory || isSubCategoriesLoading}
                                 >
-                                    <option value="">Select sub-category</option>
+                                    <option value="">
+                                        {!selectedCategory
+                                            ? "— Select category first —"
+                                            : isSubCategoriesLoading
+                                            ? "Loading subcategories..."
+                                            : (subCategories?.data?.length || 0) === 0
+                                            ? "— No subcategories available —"
+                                            : "Select sub-category"}
+                                    </option>
                                     {subCategories?.data?.map((s) => (
                                         <option key={s.id} value={s.id}>
                                             {s.name}

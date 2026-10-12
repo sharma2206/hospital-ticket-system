@@ -26,4 +26,14 @@ class Category extends Model
     {
         return $this->hasMany(Ticket::class);
     }
+
+    public function subCategories()
+    {
+        return $this->hasMany(SubCategory::class)->orderBy('sort_order');
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
 }
