@@ -34,4 +34,9 @@ class TicketHistory extends Model
     {
         return $this->belongsTo(User::class, 'changed_by');
     }
+
+    public function changer()
+    {
+        return $this->changedBy();
+    }
 }

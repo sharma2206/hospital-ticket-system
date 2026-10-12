@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -17,7 +18,7 @@ return new class extends Migration
             $table->text('symptoms')->nullable();
             $table->text('solution_summary')->nullable();
             $table->json('tags')->nullable();
-            $table->json('attachments')->nullable(); // array of file paths
+            $table->json('attachments')->nullable();
             $table->enum('status', ['draft', 'published', 'archived'])->default('draft');
             $table->foreignId('author_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
@@ -28,9 +29,14 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->fullText(['title', 'content', 'solution_summary']);
             $table->index('status');
         });
+
+        if (DB::getDriverName() !== 'sqlite') {
+            Schema::table('knowledge_articles', function (Blueprint $table) {
+                $table->fullText(['title', 'content', 'solution_summary']);
+            });
+        }
     }
 
     public function down(): void

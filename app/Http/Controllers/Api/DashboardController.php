@@ -25,12 +25,24 @@ class DashboardController extends Controller
         }
 
         // Status IDs
-        $statuses = TicketStatus::pluck('id', 'code');
-        $openId       = $statuses['OPEN'] ?? null;
-        $inProgressId = $statuses['IN_PROGRESS'] ?? null;
-        $resolvedId   = $statuses['RESOLVED'] ?? null;
-        $closedId     = $statuses['CLOSED'] ?? null;
-        $activeIds    = array_filter([$openId, $inProgressId]);
+        $normalizeCode = fn(string $value): string => strtoupper(str_replace([' ', '-'], '_', trim($value)));
+
+        $statusMap = TicketStatus::query()
+            ->select('id', 'code')
+            ->get()
+            ->reduce(function (array $carry, TicketStatus $status) use ($normalizeCode) {
+                $code = $status->code;
+                if (is_string($code) && $code !== '') {
+                    $carry[$normalizeCode($code)] = $status->id;
+                }
+                return $carry;
+            }, []);
+
+        $openId       = $statusMap['OPEN'] ?? null;
+        $inProgressId = $statusMap['IN_PROGRESS'] ?? null;
+        $resolvedId   = $statusMap['RESOLVED'] ?? null;
+        $closedId     = $statusMap['CLOSED'] ?? null;
+        $activeIds    = array_values(array_filter([$openId, $inProgressId]));
 
         // Core counts
         $total    = (clone $base)->count();
@@ -172,7 +184,7 @@ class DashboardController extends Controller
                 'escalated'         => $escalated,
                 'unassigned'        => $unassigned,
                 'my_assigned'       => $myAssigned,
-                'avg_resolution_min'=> round($avgResolution ?? 0),
+                'avg_resolution_min' => round($avgResolution ?? 0),
                 'avg_response_min'  => round($avgFirstResponse ?? 0),
                 'avg_satisfaction'  => round($avgRating ?? 0, 1),
             ],

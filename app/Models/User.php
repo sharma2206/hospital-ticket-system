@@ -22,6 +22,7 @@ class User extends Authenticatable implements JWTSubject
         'password',
         'phone',
         'department_id',
+        'branch_id',
         'patient_id',
         'is_active',
         'last_login',
@@ -43,6 +44,11 @@ class User extends Authenticatable implements JWTSubject
     public function department()
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function tickets()
