@@ -36,6 +36,104 @@
     --space-6: 1.5rem;
 }
 
+/* ── Dark Theme ───────────────────────────────────────────────────── */
+[data-theme="dark"] {
+    --primary: #3b82f6;
+    --primary-strong: #2563eb;
+    --primary-soft: #1e3a5f;
+    --secondary: #f1f5f9;
+    --secondary-soft: #1e293b;
+    --success: #22c55e;
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --info: #38bdf8;
+    --bg: #0f172a;
+    --bg-card: #1e293b;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --border: #334155;
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    --shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.25);
+    --status-open: #fbbf24;
+    --status-progress: #60a5fa;
+    --status-pending: #c084fc;
+    --status-resolved: #34d399;
+    --status-closed: #94a3b8;
+    --priority-low: #94a3b8;
+    --priority-medium: #fbbf24;
+    --priority-high: #fb923c;
+    --priority-critical: #f87171;
+}
+
+[data-theme="dark"] body {
+    background: var(--bg);
+    color: var(--text);
+}
+
+[data-theme="dark"] .card {
+    background: var(--bg-card);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .card-header {
+    background: linear-gradient(
+        180deg,
+        rgba(30, 41, 59, 0.9),
+        rgba(30, 41, 59, 0.8)
+    );
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-input,
+[data-theme="dark"] .form-select,
+[data-theme="dark"] .form-textarea {
+    background: #0f172a;
+    border-color: var(--border);
+    color: var(--text);
+}
+
+[data-theme="dark"] .sidebar {
+    background: rgba(30, 41, 59, 0.92);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .topbar {
+    background: rgba(15, 23, 42, 0.92);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .table th {
+    background: rgba(30, 41, 59, 0.8);
+    color: var(--text-muted);
+}
+
+[data-theme="dark"] .table tbody tr:hover {
+    background: rgba(51, 65, 85, 0.5);
+}
+
+[data-theme="dark"] .notif-dropdown,
+[data-theme="dark"] .notif-bell-btn {
+    background: var(--bg-card);
+    border-color: var(--border);
+    color: var(--text);
+}
+
+[data-theme="dark"] .btn-secondary {
+    background: #334155;
+    border-color: var(--border);
+    color: var(--text);
+}
+
+[data-theme="dark"] .sidebar-link:hover {
+    background: rgba(51, 65, 85, 0.5);
+}
+
+[data-theme="dark"] .stat-card {
+    background: var(--bg-card);
+    border-color: var(--border);
+}
+
 * {
     box-sizing: border-box;
 }
@@ -948,4 +1046,162 @@ svg {
     .ticket-form-actions .btn {
         width: 100%;
     }
+}
+
+/* ── SLA Status Badges ─────────────────────────────────────────────── */
+.sla-ok {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.sla-warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.sla-critical {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.sla-breached {
+    background: #fee2e2;
+    color: #7f1d1d;
+    border: 1px solid #fca5a5;
+}
+
+.sla-paused {
+    background: #fef3c7;
+    color: #78350f;
+    border: 1px dashed #fcd34d;
+}
+
+.sla-no_sla {
+    background: var(--secondary-soft);
+    color: var(--text-muted);
+}
+
+[data-theme="dark"] .sla-ok      { background: rgba(22,163,74,0.15); color: #4ade80; }
+[data-theme="dark"] .sla-warning { background: rgba(245,158,11,0.15); color: #fbbf24; }
+[data-theme="dark"] .sla-critical { background: rgba(239,68,68,0.15); color: #fca5a5; }
+[data-theme="dark"] .sla-breached { background: rgba(239,68,68,0.2); color: #fca5a5; border-color: rgba(239,68,68,0.3); }
+[data-theme="dark"] .sla-paused   { background: rgba(245,158,11,0.15); color: #fbbf24; }
+
+/* ── Badge Variants ─────────────────────────────────────────────────── */
+.badge-open {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.badge-closed {
+    background: var(--secondary-soft);
+    color: var(--text-muted);
+}
+
+.badge-success,
+.badge-active {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.badge-warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.badge-danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.badge-info {
+    background: #e0f2fe;
+    color: #075985;
+}
+
+.badge-purple {
+    background: #f3e8ff;
+    color: #7e22ce;
+}
+
+[data-theme="dark"] .badge-open    { background: rgba(245,158,11,0.15); color: #fbbf24; }
+[data-theme="dark"] .badge-closed  { background: rgba(100,116,139,0.15); color: #94a3b8; }
+[data-theme="dark"] .badge-success { background: rgba(22,163,74,0.15); color: #4ade80; }
+[data-theme="dark"] .badge-warning { background: rgba(245,158,11,0.15); color: #fbbf24; }
+[data-theme="dark"] .badge-danger  { background: rgba(239,68,68,0.15); color: #fca5a5; }
+[data-theme="dark"] .badge-info    { background: rgba(2,132,199,0.15); color: #38bdf8; }
+
+/* ── Form Error Message ─────────────────────────────────────────────── */
+.form-error {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 0.75rem;
+    color: var(--danger);
+    font-weight: 500;
+}
+
+/* ── Panel Card (Admin Stubs / Generic) ─────────────────────────────── */
+.panel-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-soft);
+}
+
+.panel-card h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.panel-card p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+/* ── Pagination ─────────────────────────────────────────────────────── */
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.pagination-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    color: var(--text);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: var(--primary-soft);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.pagination-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }

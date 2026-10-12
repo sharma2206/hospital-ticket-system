@@ -52,7 +52,7 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/{ticket}/resume-sla',[TicketController::class, 'resumeSLA']);
         Route::post('/{ticket}/attachments',          [TicketController::class, 'uploadAttachment']);
         Route::delete('/{ticket}/attachments/{attachment}', [TicketController::class, 'deleteAttachment']);
-        Route::delete('/{ticket}',         [TicketController::class, 'destroy']);
+        Route::delete('/{ticket}',         [TicketController::class, 'destroy'])->middleware('role:super_admin|admin|it_manager');
     });
 
     // ── Comments ───────────────────────────────────────────────────
@@ -71,41 +71,43 @@ Route::middleware('auth:api')->group(function () {
     });
     Route::get('/priorities',      [PriorityController::class, 'index']);
     Route::get('/ticket-statuses', fn() => response()->json(['data' => \App\Models\TicketStatus::orderBy('order')->get()]));
+    Route::get('/statuses',        fn() => response()->json(['data' => \App\Models\TicketStatus::orderBy('order')->get()]));
     Route::get('/vendors',         fn() => response()->json(['data' => \App\Models\Vendor::active()->orderBy('name')->get()]));
     Route::get('/sla-rules',       fn() => response()->json(['data' => \App\Models\SlaRule::active()->with('priority')->get()]));
 
     // ── Departments ────────────────────────────────────────────────
     Route::get('/departments',          [DepartmentController::class, 'index']);
-    Route::post('/departments',         [DepartmentController::class, 'store']);
-    Route::put('/departments/{department}', [DepartmentController::class, 'update']);
-    Route::delete('/departments/{department}', [DepartmentController::class, 'destroy']);
+    Route::post('/departments',         [DepartmentController::class, 'store'])->middleware('role:super_admin|admin|it_manager');
+    Route::put('/departments/{department}', [DepartmentController::class, 'update'])->middleware('role:super_admin|admin|it_manager');
+    Route::delete('/departments/{department}', [DepartmentController::class, 'destroy'])->middleware('role:super_admin|admin');
 
     // ── Branches ───────────────────────────────────────────────────
     Route::get('/branches',          [BranchController::class, 'index']);
-    Route::post('/branches',         [BranchController::class, 'store']);
+    Route::post('/branches',         [BranchController::class, 'store'])->middleware('role:super_admin|admin|it_manager');
     Route::get('/branches/{branch}', [BranchController::class, 'show']);
-    Route::put('/branches/{branch}', [BranchController::class, 'update']);
-    Route::delete('/branches/{branch}', [BranchController::class, 'destroy']);
+    Route::put('/branches/{branch}', [BranchController::class, 'update'])->middleware('role:super_admin|admin|it_manager');
+    Route::delete('/branches/{branch}', [BranchController::class, 'destroy'])->middleware('role:super_admin|admin');
 
     // ── Users ──────────────────────────────────────────────────────
     Route::get('/it-staff',           [UserController::class, 'itStaff']);
-    Route::get('/users',              [UserController::class, 'index']);
-    Route::post('/users',             [UserController::class, 'store']);
-    Route::get('/users/{user}',       [UserController::class, 'show']);
-    Route::put('/users/{user}',       [UserController::class, 'update']);
-    Route::delete('/users/{user}',    [UserController::class, 'destroy']);
-    Route::post('/users/{user}/change-password', [UserController::class, 'changePassword']);
-    Route::post('/users/{user}/toggle-active',   [UserController::class, 'toggleActive']);
-    Route::post('/users/{user}/roles',            [UserController::class, 'assignRole']);
+    Route::get('/users',              [UserController::class, 'index'])->middleware('role:super_admin|admin|it_manager|team_lead');
+    Route::post('/users',             [UserController::class, 'store'])->middleware('role:super_admin|admin|it_manager');
+    Route::get('/users/{user}',       [UserController::class, 'show'])->middleware('role:super_admin|admin|it_manager|team_lead');
+    Route::put('/users/{user}',       [UserController::class, 'update'])->middleware('role:super_admin|admin|it_manager');
+    Route::delete('/users/{user}',    [UserController::class, 'destroy'])->middleware('role:super_admin|admin');
+    Route::post('/users/{user}/change-password', [UserController::class, 'changePassword'])->middleware('role:super_admin|admin|it_manager');
+    Route::post('/users/{user}/toggle-active',   [UserController::class, 'toggleActive'])->middleware('role:super_admin|admin|it_manager');
+    Route::post('/users/{user}/roles',            [UserController::class, 'assignRole'])->middleware('role:super_admin|admin');
     Route::get('/roles',              [UserController::class, 'roles']);
 
     // ── Assets ─────────────────────────────────────────────────────
-    Route::get('/assets',                   [AssetController::class, 'index']);
-    Route::post('/assets',                  [AssetController::class, 'store']);
+    // NOTE: /assets/categories MUST come before /assets/{asset} to avoid being captured as a param
     Route::get('/assets/categories',        [AssetController::class, 'categories']);
+    Route::get('/assets',                   [AssetController::class, 'index']);
+    Route::post('/assets',                  [AssetController::class, 'store'])->middleware('role:super_admin|admin|it_manager|team_lead|technician|it_staff');
     Route::get('/assets/{asset}',           [AssetController::class, 'show']);
-    Route::put('/assets/{asset}',           [AssetController::class, 'update']);
-    Route::delete('/assets/{asset}',        [AssetController::class, 'destroy']);
+    Route::put('/assets/{asset}',           [AssetController::class, 'update'])->middleware('role:super_admin|admin|it_manager|team_lead|technician|it_staff');
+    Route::delete('/assets/{asset}',        [AssetController::class, 'destroy'])->middleware('role:super_admin|admin|it_manager');
     Route::get('/assets/{asset}/history',   [AssetController::class, 'history']);
 
     // ── Knowledge Base ─────────────────────────────────────────────
@@ -140,10 +142,11 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/audit-logs/modules',  [AuditLogController::class, 'modules']);
 
     // ── Settings ───────────────────────────────────────────────────
-    Route::get('/settings',              [SettingController::class, 'index']);
-    Route::post('/settings',             [SettingController::class, 'update']);
-    Route::put('/settings/{key}',        [SettingController::class, 'updateSingle']);
+    // NOTE: /settings/groups MUST come before /settings/{key} to avoid being captured as param
     Route::get('/settings/groups',       [SettingController::class, 'groups']);
+    Route::get('/settings',              [SettingController::class, 'index']);
+    Route::post('/settings',             [SettingController::class, 'update'])->middleware('role:super_admin|admin|it_manager');
+    Route::put('/settings/{key}',        [SettingController::class, 'updateSingle'])->middleware('role:super_admin|admin|it_manager');
 
     // ── Global Search ──────────────────────────────────────────────
     Route::get('/search', function () {

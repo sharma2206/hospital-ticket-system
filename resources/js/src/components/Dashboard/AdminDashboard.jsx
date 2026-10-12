@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
     AreaChart,
@@ -405,9 +406,9 @@ export default function AdminDashboard() {
                 <div className="card" style={{ flex: 1 }}>
                     <div className="card-header">
                         <div className="card-title">🕐 Recent Tickets</div>
-                        <a href="/tickets" className="btn btn-secondary btn-sm">
+                        <Link to="/tickets" className="btn btn-secondary btn-sm">
                             View All
-                        </a>
+                        </Link>
                     </div>
                     <div className="table-wrapper">
                         <table className="table">
@@ -424,12 +425,12 @@ export default function AdminDashboard() {
                                 {recentTickets.map((t) => (
                                     <tr key={t.id}>
                                         <td>
-                                            <a
-                                                href={`/tickets/${t.id}`}
+                                            <Link
+                                                to={`/tickets/${t.id}`}
                                                 className="table-link"
                                             >
                                                 {t.ticket_number}
-                                            </a>
+                                            </Link>
                                         </td>
                                         <td
                                             style={{

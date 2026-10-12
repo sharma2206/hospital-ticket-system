@@ -233,15 +233,32 @@ class TicketController extends Controller
         $newStatus = TicketStatus::find($validated['status_id']);
         $old = $ticket->status_id;
 
-        $ticket->update(array_filter([
-            'status_id'       => $validated['status_id'],
-            'resolution_notes'=> $validated['resolution_notes'] ?? null,
-            'root_cause'      => $validated['root_cause'] ?? null,
-            'closure_notes'   => $validated['closure_notes'] ?? null,
-            'resolved_at'     => in_array($newStatus?->code, ['RESOLVED', 'CLOSED']) ? ($ticket->resolved_at ?? now()) : null,
-            'closed_at'       => $newStatus?->code === 'CLOSED' ? now() : null,
-            'first_response_at' => $ticket->first_response_at ?? (in_array($newStatus?->code, ['IN_PROGRESS']) ? now() : null),
-        ], fn($v) => $v !== null));
+        $isResolved = in_array($newStatus?->code, ['RESOLVED', 'CLOSED']);
+        $isClosed   = $newStatus?->code === 'CLOSED';
+        $isInProgress = $newStatus?->code === 'IN_PROGRESS';
+
+        $updateData = ['status_id' => $validated['status_id']];
+
+        if (!empty($validated['resolution_notes'])) {
+            $updateData['resolution_notes'] = $validated['resolution_notes'];
+        }
+        if (!empty($validated['root_cause'])) {
+            $updateData['root_cause'] = $validated['root_cause'];
+        }
+        if (!empty($validated['closure_notes'])) {
+            $updateData['closure_notes'] = $validated['closure_notes'];
+        }
+        if ($isResolved && !$ticket->resolved_at) {
+            $updateData['resolved_at'] = now();
+        }
+        if ($isClosed) {
+            $updateData['closed_at'] = now();
+        }
+        if ($isInProgress && !$ticket->first_response_at) {
+            $updateData['first_response_at'] = now();
+        }
+
+        $ticket->update($updateData);
 
         $ticket->recordHistory('status_change', $user->id, $old, $validated['status_id']);
 
@@ -372,6 +389,11 @@ class TicketController extends Controller
 
     public function destroy(Ticket $ticket): JsonResponse
     {
+        $user = Auth::user();
+        if (!$user || !$user->hasAnyRole(['super_admin', 'admin', 'it_manager'])) {
+            return response()->json(['message' => 'Unauthorized. Only IT Managers and Admins can delete tickets.'], 403);
+        }
+
         $ticketNumber = $ticket->ticket_number;
         $ticket->delete();
 

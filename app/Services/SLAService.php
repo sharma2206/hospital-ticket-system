@@ -33,14 +33,25 @@ class SLAService
         return $from->copy()->addMinutes($rule->response_minutes);
     }
 
+    private static ?array $closedStatusIds = null;
+    private static ?array $openStatusIds = null;
+    private static array $rulesByPriority = [];
+
     /**
      * Check if a ticket has breached SLA.
      */
     public function checkBreach(Ticket $ticket): bool
     {
         if (!$ticket->due_date) return false;
-        $openStatuses = \App\Models\TicketStatus::whereNotIn('code', ['RESOLVED', 'CLOSED'])->pluck('id')->toArray();
-        if (!in_array($ticket->status_id, $openStatuses)) return false;
+
+        if ($ticket->relationLoaded('status') && $ticket->status) {
+            if (in_array($ticket->status->code, ['RESOLVED', 'CLOSED'])) return false;
+        } else {
+            if (self::$openStatusIds === null) {
+                self::$openStatusIds = \App\Models\TicketStatus::whereNotIn('code', ['RESOLVED', 'CLOSED'])->pluck('id')->toArray();
+            }
+            if (!in_array($ticket->status_id, self::$openStatusIds)) return false;
+        }
 
         $effectiveDue = $this->getEffectiveDueDate($ticket);
         return $effectiveDue->isPast();
@@ -71,8 +82,17 @@ class SLAService
             return ['status' => 'no_sla', 'label' => 'No SLA', 'color' => 'gray'];
         }
 
-        $closedStatuses = \App\Models\TicketStatus::whereIn('code', ['RESOLVED', 'CLOSED'])->pluck('id')->toArray();
-        if (in_array($ticket->status_id, $closedStatuses)) {
+        $isClosed = false;
+        if ($ticket->relationLoaded('status') && $ticket->status) {
+            $isClosed = in_array($ticket->status->code, ['RESOLVED', 'CLOSED']);
+        } else {
+            if (self::$closedStatusIds === null) {
+                self::$closedStatusIds = \App\Models\TicketStatus::whereIn('code', ['RESOLVED', 'CLOSED'])->pluck('id')->toArray();
+            }
+            $isClosed = in_array($ticket->status_id, self::$closedStatusIds);
+        }
+
+        if ($isClosed) {
             $breached = $ticket->sla_breached;
             return [
                 'status' => $breached ? 'breached' : 'met',
@@ -92,7 +112,10 @@ class SLAService
             return ['status' => 'breached', 'label' => 'SLA Breached', 'color' => 'red', 'minutes_left' => $minutesLeft];
         }
 
-        $rule = SlaRule::where('priority_id', $ticket->priority_id)->first();
+        if (!array_key_exists($ticket->priority_id, self::$rulesByPriority)) {
+            self::$rulesByPriority[$ticket->priority_id] = SlaRule::where('priority_id', $ticket->priority_id)->first();
+        }
+        $rule = self::$rulesByPriority[$ticket->priority_id];
         $totalMinutes = $rule?->resolution_minutes ?? 480;
         $percentUsed = (($totalMinutes - $minutesLeft) / $totalMinutes) * 100;
 

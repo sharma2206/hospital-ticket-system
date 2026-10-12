@@ -44,14 +44,20 @@ export function AuthProvider({ children }) {
 
     const hasRole = useCallback((role) => {
         if (!user) return false;
-        const userRoles = user.roles?.map(r => r.name) || [user.role].filter(Boolean);
+        // Backend returns roles as either string[] (from getRoleNames()) or [{name:...}] objects
+        // Handle both formats safely
+        const userRoles = Array.isArray(user.roles)
+            ? user.roles.map(r => (typeof r === 'string' ? r : r.name)).filter(Boolean)
+            : [user.role].filter(Boolean);
         if (Array.isArray(role)) return role.some(r => userRoles.includes(r));
         return userRoles.includes(role);
     }, [user]);
 
     const hasPermission = useCallback((permission) => {
         if (!user) return false;
-        const permissions = user.permissions?.map(p => p.name) || [];
+        const permissions = Array.isArray(user.permissions)
+            ? user.permissions.map(p => (typeof p === 'string' ? p : p.name)).filter(Boolean)
+            : [];
         return permissions.includes(permission);
     }, [user]);
 
@@ -61,7 +67,9 @@ export function AuthProvider({ children }) {
 
     const getUserRoleName = useCallback(() => {
         if (!user) return 'User';
-        const roles = user.roles?.map(r => r.name) || [user.role].filter(Boolean);
+        const roles = Array.isArray(user.roles)
+            ? user.roles.map(r => (typeof r === 'string' ? r : r.name)).filter(Boolean)
+            : [user.role].filter(Boolean);
         return roles[0]?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'User';
     }, [user]);
 

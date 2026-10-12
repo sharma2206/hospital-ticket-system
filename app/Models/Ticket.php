@@ -302,6 +302,7 @@ class Ticket extends Model
         $latest = DB::table('tickets')
             ->where('ticket_number', 'like', "{$prefix}%")
             ->where('ticket_type', 'internal')
+            ->lockForUpdate()
             ->max(DB::raw("CAST(SUBSTRING_INDEX(ticket_number, '-', -1) AS UNSIGNED)"));
 
         $next = ($latest ?? 0) + 1;

@@ -20,31 +20,43 @@ class TicketService
      */
     public function createTicket(array $data, int $createdBy): Ticket
     {
-        return DB::transaction(function () use ($data, $createdBy) {
-            $ticket = Ticket::create(array_merge($data, [
-                'ticket_number' => Ticket::generateTicketNumber(),
-                'ticket_type'   => 'internal',
-                'created_by'    => $createdBy,
-                'status_id'     => \App\Models\TicketStatus::where('code', 'OPEN')->value('id') ?? 1,
-                'due_date'      => $this->slaService->calculateDueDate($data['priority_id']),
-            ]));
+        $maxAttempts = 3;
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                return DB::transaction(function () use ($data, $createdBy) {
+                    $ticket = Ticket::create(array_merge($data, [
+                        'ticket_number' => Ticket::generateTicketNumber(),
+                        'ticket_type'   => 'internal',
+                        'created_by'    => $createdBy,
+                        'status_id'     => \App\Models\TicketStatus::where('code', 'OPEN')->value('id') ?? 1,
+                        'due_date'      => $this->slaService->calculateDueDate($data['priority_id']),
+                    ]));
 
-            TicketHistory::create([
-                'ticket_id'   => $ticket->id,
-                'change_type' => 'created',
-                'changed_by'  => $createdBy,
-                'description' => 'Ticket created',
-            ]);
+                    TicketHistory::create([
+                        'ticket_id'   => $ticket->id,
+                        'change_type' => 'created',
+                        'changed_by'  => $createdBy,
+                        'description' => 'Ticket created',
+                    ]);
 
-            AuditLog::record('created', 'tickets', [
-                'model_type' => Ticket::class,
-                'model_id'   => $ticket->id,
-                'new_values' => $ticket->toArray(),
-                'description'=> "Ticket {$ticket->ticket_number} created",
-            ]);
+                    AuditLog::record('created', 'tickets', [
+                        'model_type' => Ticket::class,
+                        'model_id'   => $ticket->id,
+                        'new_values' => $ticket->toArray(),
+                        'description'=> "Ticket {$ticket->ticket_number} created",
+                    ]);
 
-            return $ticket;
-        });
+                    return $ticket;
+                });
+            } catch (\Illuminate\Database\QueryException $e) {
+                if ($attempt < $maxAttempts && ($e->errorInfo[1] ?? 0) === 1062) {
+                    usleep(50000 * $attempt); // Back off 50ms, 100ms
+                    continue;
+                }
+                throw $e;
+            }
+        }
+        throw new \RuntimeException('Failed to generate a unique ticket number after multiple attempts.');
     }
 
     /**

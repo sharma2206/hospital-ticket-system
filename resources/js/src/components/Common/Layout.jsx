@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
@@ -144,9 +144,6 @@ export default function Layout() {
                                     >
                                         <span className="sidebar-link-icon">{item.icon}</span>
                                         {item.label}
-                                        {item.label === 'Escalated' && unreadCount > 0 && (
-                                            <span className="sidebar-link-badge">{unreadCount}</span>
-                                        )}
                                     </NavLink>
                                 ))}
                             </div>
@@ -196,9 +193,10 @@ export default function Layout() {
                         </button>
                         <div>
                             <div className="topbar-title">
-                                {location.pathname.replace('/', '').split('/').map(s =>
-                                    s.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-                                ).join(' › ') || 'Dashboard'}
+                                {location.pathname.replace(/^\//, '').split('/').map(s => {
+                                    if (/^\d+$/.test(s)) return `#${s}`;
+                                    return s.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                                }).join(' › ') || 'Dashboard'}
                             </div>
                         </div>
                     </div>
@@ -219,6 +217,7 @@ export default function Layout() {
 }
 
 function NotificationBell({ count }) {
+    const queryClient = useQueryClient();
     const [open, setOpen] = useState(false);
     const { data } = useQuery({
         queryKey: ['notifications'],
@@ -228,6 +227,9 @@ function NotificationBell({ count }) {
 
     const markAllRead = async () => {
         await api.post('/notifications/mark-all-read');
+        // Refetch both the list and the unread count
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        queryClient.invalidateQueries({ queryKey: ['notifications-count'] });
     };
 
     return (

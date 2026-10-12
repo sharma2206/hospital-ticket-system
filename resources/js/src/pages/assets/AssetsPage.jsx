@@ -191,8 +191,8 @@ export default function AssetsPage() {
                                         </td>
                                         <td>{asset.department?.name || "—"}</td>
                                         <td>
-                                            {asset.assigned_user
-                                                ? `${asset.assigned_user.first_name} ${asset.assigned_user.last_name}`
+                                            {(asset.assigned_user || asset.assignedUser)
+                                                ? `${(asset.assigned_user || asset.assignedUser).first_name} ${(asset.assigned_user || asset.assignedUser).last_name}`
                                                 : "Unassigned"}
                                         </td>
                                         <td>{asset.location || "—"}</td>
@@ -224,6 +224,55 @@ export default function AssetsPage() {
                     </table>
                 </div>
             </div>
+
+            {/* Pagination */}
+            {pagination.last_page > 1 && (
+                <div className="card">
+                    <div className="pagination">
+                        <button
+                            className="pagination-btn"
+                            disabled={filters.page <= 1}
+                            onClick={() => setFilter("page", String(Number(filters.page) - 1))}
+                        >
+                            &larr;
+                        </button>
+                        {Array.from({ length: pagination.last_page }, (_, i) => i + 1)
+                            .filter(p => {
+                                const current = Number(filters.page);
+                                return p === 1 || p === pagination.last_page || Math.abs(p - current) <= 2;
+                            })
+                            .reduce((acc, p, i, arr) => {
+                                if (i > 0 && p - arr[i - 1] > 1) acc.push('...');
+                                acc.push(p);
+                                return acc;
+                            }, [])
+                            .map((p, i) =>
+                                p === '...' ? (
+                                    <span key={`ellipsis-${i}`} style={{ padding: '0 0.25rem', color: 'var(--text-muted)' }}>…</span>
+                                ) : (
+                                    <button
+                                        key={p}
+                                        className={`pagination-btn ${Number(filters.page) === p ? 'active' : ''}`}
+                                        onClick={() => setFilter("page", String(p))}
+                                    >
+                                        {p}
+                                    </button>
+                                )
+                            )
+                        }
+                        <button
+                            className="pagination-btn"
+                            disabled={Number(filters.page) >= pagination.last_page}
+                            onClick={() => setFilter("page", String(Number(filters.page) + 1))}
+                        >
+                            &rarr;
+                        </button>
+                        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
+                            {pagination.total} total assets
+                        </span>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

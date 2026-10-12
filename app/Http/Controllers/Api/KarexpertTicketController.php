@@ -2,22 +2,16 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
 use App\Models\Ticket;
 use App\Models\TicketHistory;
 use App\Models\TicketStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
-class KarexpertTicketController
+class KarexpertTicketController extends Controller
 {
-    protected $user;
-    protected $userId;
-
-    public function __construct()
-    {
-        $this->user   = Auth::user() ?? null;
-        $this->userId = $this->user ? $this->user->id : null;
-    }
 
     /**
      * KareXpert dashboard stats.
@@ -173,19 +167,28 @@ class KarexpertTicketController
             'parent_ticket_id' => 'nullable|exists:tickets,id',
         ]);
 
+        $userId = Auth::id();
+
         // Get 'raised' status id
-        $raisedStatusId = TicketStatus::where('name', 'raised')->value('id');
+        $raisedStatusId = TicketStatus::where('name', 'raised')->value('id')
+            ?? TicketStatus::where('code', 'RAISED')->value('id')
+            ?? TicketStatus::first()?->id;
 
         // Get IT department id for KareXpert tickets
         $itDeptId = \App\Models\Department::where('code', 'IT')->value('id');
 
+        $today = date('Ymd');
+        $prefix = "KX-{$today}-";
+        $latest = Ticket::where('ticket_type', 'karexpert')
+            ->where('ticket_number', 'like', "{$prefix}%")
+            ->max(DB::raw("CAST(SUBSTRING_INDEX(ticket_number, '-', -1) AS UNSIGNED)"));
+        $ticketNumber = $prefix . str_pad(($latest ?? 0) + 1, 5, '0', STR_PAD_LEFT);
+
         $ticket = Ticket::create([
             ...$validated,
             'ticket_type'   => 'karexpert',
-            'ticket_number' => 'KX-' . date('Ymd') . '-' . str_pad(
-                Ticket::karexpert()->count() + 1, 5, '0', STR_PAD_LEFT
-            ),
-            'created_by'    => $this->userId,
+            'ticket_number' => $ticketNumber,
+            'created_by'    => $userId,
             'department_id' => $itDeptId,
             'status_id'     => $raisedStatusId,
         ]);
@@ -194,7 +197,7 @@ class KarexpertTicketController
         TicketHistory::create([
             'ticket_id'   => $ticket->id,
             'change_type' => 'created',
-            'changed_by'  => $this->userId,
+            'changed_by'  => $userId,
             'description' => 'KareXpert ticket created',
         ]);
 
@@ -279,7 +282,7 @@ class KarexpertTicketController
                 'change_type' => isset($validated['status_id']) ? 'status_change' : 'update',
                 'old_value'   => $ticket->getOriginal('status_id'),
                 'new_value'   => $validated['status_id'] ?? null,
-                'changed_by'  => $this->userId,
+                'changed_by'  => Auth::id(),
                 'description' => implode('; ', $changes),
             ]);
         }

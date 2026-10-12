@@ -518,11 +518,11 @@ export default function UsersPage() {
                                                 <button
                                                     type="button"
                                                     className="btn btn-danger btn-sm"
-                                                    onClick={() =>
-                                                        deleteUser.mutate(
-                                                            user.id,
-                                                        )
-                                                    }
+                                                    onClick={() => {
+                                                        if (window.confirm(`Are you sure you want to delete user "${user.first_name} ${user.last_name}" (${user.email})?`)) {
+                                                            deleteUser.mutate(user.id);
+                                                        }
+                                                    }}
                                                 >
                                                     <Trash2 size={14} /> Delete
                                                 </button>

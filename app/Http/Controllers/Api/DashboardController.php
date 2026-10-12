@@ -115,7 +115,7 @@ class DashboardController extends Controller
         $byBranch = (clone $base)
             ->leftJoin('branches', 'tickets.branch_id', '=', 'branches.id')
             ->selectRaw('COALESCE(branches.name, "Unassigned") as name, count(*) as count')
-            ->groupBy('branches.name')
+            ->groupBy(DB::raw('COALESCE(branches.name, "Unassigned")'))
             ->orderByDesc('count')
             ->get();
 
@@ -135,8 +135,8 @@ class DashboardController extends Controller
                 ->whereIn('status_id', $activeIds)
                 ->whereNotNull('assigned_to')
                 ->join('users', 'tickets.assigned_to', '=', 'users.id')
-                ->selectRaw('CONCAT(users.first_name, " ", users.last_name) as name, count(*) as count')
-                ->groupBy('users.first_name', 'users.last_name')
+                ->selectRaw('users.id, CONCAT(users.first_name, " ", users.last_name) as name, count(*) as count')
+                ->groupBy('users.id', 'users.first_name', 'users.last_name')
                 ->orderByDesc('count')
                 ->limit(10)
                 ->get();
