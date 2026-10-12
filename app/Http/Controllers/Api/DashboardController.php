@@ -76,16 +76,24 @@ class DashboardController extends Controller
             $myAssigned = Ticket::internal()->where('assigned_to', $user->id)->whereIn('status_id', $activeIds)->count();
         }
 
+        $isSqlite = DB::connection()->getDriverName() === 'sqlite';
+        $resDiffSql = $isSqlite
+            ? 'AVG((strftime("%s", resolved_at) - strftime("%s", created_at)) / 60) as avg_minutes'
+            : 'AVG(TIMESTAMPDIFF(MINUTE, created_at, resolved_at)) as avg_minutes';
+        $firstDiffSql = $isSqlite
+            ? 'AVG((strftime("%s", first_response_at) - strftime("%s", created_at)) / 60) as avg_minutes'
+            : 'AVG(TIMESTAMPDIFF(MINUTE, created_at, first_response_at)) as avg_minutes';
+
         // Avg resolution time (minutes)
         $avgResolution = (clone $base)
             ->whereNotNull('resolved_at')
-            ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, resolved_at)) as avg_minutes')
+            ->selectRaw($resDiffSql)
             ->value('avg_minutes');
 
         // Avg first response time (minutes)
         $avgFirstResponse = (clone $base)
             ->whereNotNull('first_response_at')
-            ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, first_response_at)) as avg_minutes')
+            ->selectRaw($firstDiffSql)
             ->value('avg_minutes');
 
         // Priority distribution
@@ -131,11 +139,15 @@ class DashboardController extends Controller
         // Technician workload (staff only)
         $technicianWorkload = [];
         if ($isStaff) {
+            $nameConcat = $isSqlite
+                ? "(users.first_name || ' ' || users.last_name)"
+                : 'CONCAT(users.first_name, " ", users.last_name)';
+
             $technicianWorkload = Ticket::internal()
                 ->whereIn('status_id', $activeIds)
                 ->whereNotNull('assigned_to')
                 ->join('users', 'tickets.assigned_to', '=', 'users.id')
-                ->selectRaw('users.id, CONCAT(users.first_name, " ", users.last_name) as name, count(*) as count')
+                ->selectRaw("users.id, {$nameConcat} as name, count(*) as count")
                 ->groupBy('users.id', 'users.first_name', 'users.last_name')
                 ->orderByDesc('count')
                 ->limit(10)

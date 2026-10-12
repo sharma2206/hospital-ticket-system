@@ -1,7 +1,17 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
+import {
+    Layers,
+    Plus,
+    Search,
+    RotateCcw,
+    Eye,
+    ChevronLeft,
+    ChevronRight,
+} from "lucide-react";
 import api from "../../services/api";
+import StatusBadge from "../Common/StatusBadge";
 
 export default function KxTicketList() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -57,197 +67,231 @@ export default function KxTicketList() {
     const pagination = data?.pagination || {};
 
     return (
-        <div style={{ display: "grid", gap: "1rem" }}>
+        <div className="space-y-5">
             <div className="page-header">
                 <div>
-                    <div className="page-title">📤 KareXpert Tickets</div>
-                    <div className="page-subtitle">
-                        {pagination.total ?? 0} tracked tickets
-                    </div>
+                    <h1 className="page-title flex items-center gap-2">
+                        <span>KareXpert HMS Tickets</span>
+                    </h1>
+                    <p className="page-subtitle">
+                        {pagination.total ?? 0} tickets tracked in KareXpert vendor integration
+                    </p>
                 </div>
+                <Link to="/karexpert/tickets/create" className="btn btn-primary btn-sm flex items-center gap-1.5 shadow-sm">
+                    <Plus size={16} />
+                    <span>Raise to KX</span>
+                </Link>
             </div>
 
-            <div className="card" style={{ padding: "1rem" }}>
-                <div
-                    style={{
-                        display: "flex",
-                        gap: ".75rem",
-                        flexWrap: "wrap",
-                        alignItems: "flex-end",
-                    }}
-                >
-                    <form
-                        onSubmit={doSearch}
-                        style={{
-                            display: "flex",
-                            gap: ".5rem",
-                            flex: 1,
-                            minWidth: "200px",
-                        }}
-                    >
+            {/* Filter Toolbar */}
+            <div className="card p-3.5">
+                <div className="ticket-list-toolbar">
+                    <form onSubmit={doSearch} className="ticket-list-search">
                         <input
-                            className="form-input"
+                            className="form-control"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search ticket # or title"
-                            style={{ minWidth: "180px" }}
+                            placeholder="Search ticket #, title, or Ref ID..."
                         />
                         <button
                             type="submit"
                             className="btn btn-secondary btn-sm"
+                            title="Search"
                         >
-                            Search
+                            <Search size={15} />
                         </button>
                     </form>
 
-                    <select
-                        className="form-select"
-                        value={filters.status}
-                        onChange={(e) => setFilter("status", e.target.value)}
-                        style={{ maxWidth: "170px" }}
-                    >
-                        <option value="">All statuses</option>
-                        {statusData?.data?.map((item) => (
-                            <option key={item.id} value={item.name}>
-                                {item.name}
-                            </option>
-                        ))}
-                    </select>
+                    <div className="ticket-list-filters">
+                        <select
+                            className="form-control"
+                            value={filters.status}
+                            onChange={(e) => setFilter("status", e.target.value)}
+                        >
+                            <option value="">All Statuses</option>
+                            {statusData?.data?.map((s) => (
+                                <option key={s.id} value={s.name}>
+                                    {s.name}
+                                </option>
+                            ))}
+                        </select>
 
-                    <select
-                        className="form-select"
-                        value={filters.module}
-                        onChange={(e) => setFilter("module", e.target.value)}
-                        style={{ maxWidth: "170px" }}
-                    >
-                        <option value="">All modules</option>
-                        {modulesData?.data?.map((item) => (
-                            <option key={item.value} value={item.value}>
-                                {item.label}
-                            </option>
-                        ))}
-                    </select>
+                        <select
+                            className="form-control"
+                            value={filters.module}
+                            onChange={(e) => setFilter("module", e.target.value)}
+                        >
+                            <option value="">All Modules</option>
+                            {modulesData?.data?.map((m) => (
+                                <option key={m.value} value={m.value}>
+                                    {m.label}
+                                </option>
+                            ))}
+                        </select>
 
-                    <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={clearFilters}
-                    >
-                        Clear
-                    </button>
+                        <button
+                            type="button"
+                            className="btn btn-secondary btn-sm flex items-center gap-1"
+                            onClick={clearFilters}
+                            title="Reset filters"
+                        >
+                            <RotateCcw size={14} />
+                            <span>Reset</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
+            {/* Table */}
             <div className="card">
                 <div className="table-wrapper">
                     <table className="table">
                         <thead>
                             <tr>
-                                <th>Ticket</th>
+                                <th>KX Ticket #</th>
+                                <th>Ref ID</th>
                                 <th>Module</th>
                                 <th>Title</th>
                                 <th>Priority</th>
                                 <th>Status</th>
                                 <th>Created</th>
+                                <th className="text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             {isLoading ? (
                                 Array(5)
                                     .fill(0)
-                                    .map((_, rowIndex) => (
-                                        <tr key={rowIndex}>
-                                            {Array(6)
+                                    .map((_, i) => (
+                                        <tr key={i}>
+                                            {Array(8)
                                                 .fill(0)
-                                                .map((__, cellIndex) => (
-                                                    <td key={cellIndex}>
+                                                .map((_, j) => (
+                                                    <td key={j}>
                                                         <div className="skeleton skeleton-text" />
                                                     </td>
                                                 ))}
                                         </tr>
                                     ))
                             ) : tickets.length ? (
-                                tickets.map((ticket) => (
-                                    <tr key={ticket.id}>
+                                tickets.map((t) => (
+                                    <tr key={t.id}>
                                         <td>
                                             <Link
-                                                to={`/karexpert/tickets/${ticket.id}`}
-                                                className="table-link"
+                                                to={`/karexpert/tickets/${t.id}`}
+                                                className="font-mono text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline"
                                             >
-                                                {ticket.ticket_number}
+                                                {t.ticket_number}
+                                            </Link>
+                                        </td>
+                                        <td className="text-xs font-mono text-slate-500">
+                                            {t.karexpert_ref_id || "—"}
+                                        </td>
+                                        <td>
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300">
+                                                {t.karexpert_module || "General"}
+                                            </span>
+                                        </td>
+                                        <td className="max-w-xs truncate font-medium text-slate-800 dark:text-slate-200">
+                                            <Link
+                                                to={`/karexpert/tickets/${t.id}`}
+                                                className="hover:text-purple-600 transition-colors"
+                                            >
+                                                {t.title}
                                             </Link>
                                         </td>
                                         <td>
-                                            {ticket.karexpert_module || "—"}
+                                            <StatusBadge
+                                                value={t.priority?.name}
+                                                label={t.priority?.name}
+                                                color={t.priority?.color}
+                                                size="sm"
+                                            />
                                         </td>
                                         <td>
+                                            <StatusBadge
+                                                value={t.status?.name}
+                                                label={t.status?.name}
+                                                color={t.status?.color}
+                                                size="sm"
+                                            />
+                                        </td>
+                                        <td className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                                            {new Date(t.created_at).toLocaleDateString()}
+                                        </td>
+                                        <td className="text-right">
                                             <Link
-                                                to={`/karexpert/tickets/${ticket.id}`}
-                                                className="table-link"
+                                                to={`/karexpert/tickets/${t.id}`}
+                                                className="btn btn-secondary btn-xs inline-flex items-center gap-1"
                                             >
-                                                {ticket.title}
+                                                <Eye size={12} />
+                                                <span>View</span>
                                             </Link>
-                                        </td>
-                                        <td>
-                                            <span
-                                                className="badge"
-                                                style={{
-                                                    background: `${ticket.priority?.color || "#64748b"}22`,
-                                                    color:
-                                                        ticket.priority
-                                                            ?.color ||
-                                                        "#64748b",
-                                                }}
-                                            >
-                                                {ticket.priority?.name ||
-                                                    "Normal"}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span
-                                                className="badge"
-                                                style={{
-                                                    background: `${ticket.status?.color || "#64748b"}22`,
-                                                    color:
-                                                        ticket.status?.color ||
-                                                        "#64748b",
-                                                }}
-                                            >
-                                                {ticket.status?.name ||
-                                                    "Unknown"}
-                                            </span>
-                                        </td>
-                                        <td
-                                            style={{
-                                                color: "var(--text-muted)",
-                                                fontSize: ".8rem",
-                                            }}
-                                        >
-                                            {ticket.created_at
-                                                ? new Date(
-                                                      ticket.created_at,
-                                                  ).toLocaleDateString()
-                                                : "—"}
                                         </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
                                     <td
-                                        colSpan={6}
-                                        style={{
-                                            textAlign: "center",
-                                            color: "var(--text-muted)",
-                                            padding: "2rem",
-                                        }}
+                                        colSpan={8}
+                                        className="text-center py-12 text-slate-400"
                                     >
-                                        No KareXpert tickets found.
+                                        <Layers size={36} className="mx-auto mb-2 text-slate-300 dark:text-slate-600" />
+                                        <p className="font-medium text-slate-600 dark:text-slate-300">No KareXpert tickets found</p>
+                                        <p className="text-xs text-slate-400 mt-0.5">
+                                            Try adjusting filters or{" "}
+                                            <Link to="/karexpert/tickets/create" className="text-purple-600 hover:underline">
+                                                raise a ticket to KareXpert
+                                            </Link>.
+                                        </p>
                                     </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination */}
+                {pagination.last_page > 1 && (
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-slate-800 text-xs">
+                        <span className="text-slate-500 dark:text-slate-400">
+                            Showing {pagination.from}–{pagination.to} of {pagination.total} tickets
+                        </span>
+                        <div className="flex items-center gap-1">
+                            <button
+                                type="button"
+                                className="btn btn-secondary btn-xs px-2"
+                                disabled={+filters.page <= 1}
+                                onClick={() => setFilter("page", +filters.page - 1)}
+                            >
+                                <ChevronLeft size={14} />
+                            </button>
+                            {Array.from(
+                                { length: Math.min(pagination.last_page, 7) },
+                                (_, i) => i + 1
+                            ).map((p) => (
+                                <button
+                                    key={p}
+                                    type="button"
+                                    className={`btn btn-xs min-w-7 ${
+                                        +filters.page === p ? "btn-primary" : "btn-secondary"
+                                    }`}
+                                    onClick={() => setFilter("page", p)}
+                                >
+                                    {p}
+                                </button>
+                            ))}
+                            <button
+                                type="button"
+                                className="btn btn-secondary btn-xs px-2"
+                                disabled={+filters.page >= pagination.last_page}
+                                onClick={() => setFilter("page", +filters.page + 1)}
+                            >
+                                <ChevronRight size={14} />
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

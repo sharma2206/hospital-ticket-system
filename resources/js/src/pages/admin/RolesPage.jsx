@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { ShieldCheck } from "lucide-react";
 import api from "../../services/api";
 
 export default function RolesPage() {
@@ -11,7 +12,9 @@ export default function RolesPage() {
         <div style={{ display: "grid", gap: "1rem" }}>
             <div className="page-header">
                 <div>
-                    <div className="page-title">🛡️ Roles & Permissions</div>
+                    <div className="page-title" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <ShieldCheck size={22} className="text-cyan-600" /> Roles & Permissions
+                    </div>
                     <div className="page-subtitle">
                         Access matrix and system roles
                     </div>

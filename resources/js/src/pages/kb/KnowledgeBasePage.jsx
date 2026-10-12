@@ -42,7 +42,9 @@ export default function KnowledgeBasePage() {
         <div style={{ display: "grid", gap: "1rem" }}>
             <div className="page-header">
                 <div>
-                    <div className="page-title">📚 Knowledge Base</div>
+                    <div className="page-title" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <BookOpenText size={22} className="text-cyan-600" /> Knowledge Base
+                    </div>
                     <div className="page-subtitle">
                         {pagination.total ?? 0} articles
                     </div>

@@ -1,13 +1,36 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import {
+    Ticket,
+    Plus,
+    Search,
+    RotateCcw,
+    AlertTriangle,
+    Eye,
+    ChevronLeft,
+    ChevronRight,
+    Filter,
+} from "lucide-react";
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+import StatusBadge from "../Common/StatusBadge";
 
 function SLABadge({ status }) {
-    if (!status) return null;
+    if (!status) return <span className="text-xs text-slate-400">—</span>;
+    
+    const colorMap = {
+        green: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60",
+        yellow: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800/60",
+        red: "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border-rose-200 dark:border-rose-800/60",
+    };
+
+    const variant = colorMap[status.color] || "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200";
+
     return (
-        <span className={`sla-badge sla-${status.status}`}>{status.label}</span>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${variant}`}>
+            {status.label}
+        </span>
     );
 }
 
@@ -15,7 +38,7 @@ export default function TicketList() {
     const { isStaff } = useAuth();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
-    const [search, setSearch] = useState("");
+    const [search, setSearch] = useState(searchParams.get("search") || "");
 
     const filters = {
         status_id: searchParams.get("status_id") || "",
@@ -33,7 +56,7 @@ export default function TicketList() {
         search: searchParams.get("search") || "",
     };
 
-    const { data, isLoading, refetch } = useQuery({
+    const { data, isLoading } = useQuery({
         queryKey: ["tickets", filters],
         queryFn: () =>
             api.get("/tickets", { params: filters }).then((r) => r.data),
@@ -65,7 +88,10 @@ export default function TicketList() {
         setSearchParams(p);
     };
 
-    const clearFilters = () => setSearchParams({});
+    const clearFilters = () => {
+        setSearchParams({});
+        setSearch("");
+    };
 
     const doSearch = (e) => {
         e.preventDefault();
@@ -76,37 +102,38 @@ export default function TicketList() {
     const pagination = data?.pagination || {};
 
     return (
-        <div>
+        <div className="space-y-5">
             <div className="page-header">
                 <div>
-                    <div className="page-title">🎫 Tickets</div>
-                    <div className="page-subtitle">
-                        {pagination.total ?? 0} total tickets
-                    </div>
+                    <h1 className="page-title flex items-center gap-2">
+                        <span>IT Support Tickets</span>
+                    </h1>
+                    <p className="page-subtitle">
+                        {pagination.total ?? 0} total tickets logged in system
+                    </p>
                 </div>
-                <Link to="/tickets/create" className="btn btn-primary">
-                    ➕ Raise Ticket
+                <Link to="/tickets/create" className="btn btn-primary btn-sm flex items-center gap-1.5 shadow-sm">
+                    <Plus size={16} />
+                    <span>Raise Ticket</span>
                 </Link>
             </div>
 
-            {/* Filters */}
-            <div
-                className="card"
-                style={{ marginBottom: "1rem", padding: "1rem" }}
-            >
+            {/* Filter Toolbar */}
+            <div className="card p-3.5">
                 <div className="ticket-list-toolbar">
                     <form onSubmit={doSearch} className="ticket-list-search">
                         <input
                             className="form-control"
-                            placeholder="Search tickets, #number, requester..."
+                            placeholder="Search by ticket #, title, requester..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
                         <button
                             className="btn btn-secondary btn-sm"
                             type="submit"
+                            title="Search"
                         >
-                            🔍
+                            <Search size={15} />
                         </button>
                     </form>
 
@@ -114,11 +141,9 @@ export default function TicketList() {
                         <select
                             className="form-control"
                             value={filters.status_id}
-                            onChange={(e) =>
-                                setFilter("status_id", e.target.value)
-                            }
+                            onChange={(e) => setFilter("status_id", e.target.value)}
                         >
-                            <option value="">All Status</option>
+                            <option value="">All Statuses</option>
                             {statusData?.data?.map((s) => (
                                 <option key={s.id} value={s.id}>
                                     {s.name}
@@ -129,11 +154,9 @@ export default function TicketList() {
                         <select
                             className="form-control"
                             value={filters.priority_id}
-                            onChange={(e) =>
-                                setFilter("priority_id", e.target.value)
-                            }
+                            onChange={(e) => setFilter("priority_id", e.target.value)}
                         >
-                            <option value="">All Priority</option>
+                            <option value="">All Priorities</option>
                             {priorityData?.data?.map((p) => (
                                 <option key={p.id} value={p.id}>
                                     {p.name}
@@ -144,9 +167,7 @@ export default function TicketList() {
                         <select
                             className="form-control"
                             value={filters.department_id}
-                            onChange={(e) =>
-                                setFilter("department_id", e.target.value)
-                            }
+                            onChange={(e) => setFilter("department_id", e.target.value)}
                         >
                             <option value="">All Departments</option>
                             {deptData?.data?.map((d) => (
@@ -161,9 +182,7 @@ export default function TicketList() {
                                 <select
                                     className="form-control"
                                     value={filters.branch_id}
-                                    onChange={(e) =>
-                                        setFilter("branch_id", e.target.value)
-                                    }
+                                    onChange={(e) => setFilter("branch_id", e.target.value)}
                                 >
                                     <option value="">All Branches</option>
                                     {branchData?.data?.map((b) => (
@@ -175,12 +194,7 @@ export default function TicketList() {
                                 <select
                                     className="form-control"
                                     value={filters.is_escalated}
-                                    onChange={(e) =>
-                                        setFilter(
-                                            "is_escalated",
-                                            e.target.value,
-                                        )
-                                    }
+                                    onChange={(e) => setFilter("is_escalated", e.target.value)}
                                 >
                                     <option value="">Escalation</option>
                                     <option value="1">Escalated Only</option>
@@ -188,24 +202,22 @@ export default function TicketList() {
                                 <select
                                     className="form-control"
                                     value={filters.sla_breached}
-                                    onChange={(e) =>
-                                        setFilter(
-                                            "sla_breached",
-                                            e.target.value,
-                                        )
-                                    }
+                                    onChange={(e) => setFilter("sla_breached", e.target.value)}
                                 >
-                                    <option value="">SLA</option>
+                                    <option value="">SLA Status</option>
                                     <option value="1">Breached Only</option>
                                 </select>
                             </>
                         )}
 
                         <button
-                            className="btn btn-secondary btn-sm"
+                            type="button"
+                            className="btn btn-secondary btn-sm flex items-center gap-1"
                             onClick={clearFilters}
+                            title="Reset filters"
                         >
-                            Clear
+                            <RotateCcw size={14} />
+                            <span>Reset</span>
                         </button>
                     </div>
                 </div>
@@ -225,7 +237,7 @@ export default function TicketList() {
                                 <th>SLA</th>
                                 {isStaff() && <th>Assigned To</th>}
                                 <th>Created</th>
-                                <th>Actions</th>
+                                <th className="text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -234,7 +246,7 @@ export default function TicketList() {
                                     .fill(0)
                                     .map((_, i) => (
                                         <tr key={i}>
-                                            {Array(9)
+                                            {Array(isStaff() ? 9 : 8)
                                                 .fill(0)
                                                 .map((_, j) => (
                                                     <td key={j}>
@@ -247,134 +259,95 @@ export default function TicketList() {
                                 tickets.map((t) => (
                                     <tr key={t.id}>
                                         <td>
-                                            <Link
-                                                to={`/tickets/${t.id}`}
-                                                className="table-link"
-                                                style={{
-                                                    fontFamily: "monospace",
-                                                    fontSize: ".8rem",
-                                                }}
-                                            >
-                                                {t.ticket_number}
-                                            </Link>
-                                            {t.is_escalated && (
-                                                <span
-                                                    style={{
-                                                        marginLeft: ".3rem",
-                                                        fontSize: ".7rem",
-                                                    }}
+                                            <div className="flex items-center gap-1.5">
+                                                <Link
+                                                    to={`/tickets/${t.id}`}
+                                                    className="font-mono text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
                                                 >
-                                                    🚨
-                                                </span>
-                                            )}
+                                                    {t.ticket_number}
+                                                </Link>
+                                                {t.is_escalated && (
+                                                    <span
+                                                        className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400"
+                                                        title="Escalated ticket"
+                                                    >
+                                                        <AlertTriangle size={10} />
+                                                        ESC
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
-                                        <td
-                                            style={{
-                                                maxWidth: 220,
-                                                overflow: "hidden",
-                                                textOverflow: "ellipsis",
-                                                whiteSpace: "nowrap",
-                                            }}
-                                        >
+                                        <td className="max-w-xs truncate font-medium text-slate-800 dark:text-slate-200">
                                             <Link
                                                 to={`/tickets/${t.id}`}
-                                                className="table-link"
+                                                className="hover:text-blue-600 transition-colors"
                                             >
                                                 {t.title}
                                             </Link>
                                         </td>
-                                        <td>
-                                            <span style={{ fontSize: ".8rem" }}>
-                                                {t.department?.name || "—"}
-                                            </span>
+                                        <td className="text-xs text-slate-600 dark:text-slate-400">
+                                            {t.department?.name || "—"}
                                         </td>
                                         <td>
-                                            <span
-                                                className="badge"
-                                                style={{
-                                                    background:
-                                                        t.priority?.color +
-                                                        "20",
-                                                    color: t.priority?.color,
-                                                }}
-                                            >
-                                                {t.priority?.name}
-                                            </span>
+                                            <StatusBadge
+                                                value={t.priority?.name}
+                                                label={t.priority?.name}
+                                                color={t.priority?.color}
+                                                size="sm"
+                                            />
                                         </td>
                                         <td>
-                                            <span
-                                                className="badge"
-                                                style={{
-                                                    background:
-                                                        t.status?.color + "20",
-                                                    color: t.status?.color,
-                                                }}
-                                            >
-                                                {t.status?.name}
-                                            </span>
+                                            <StatusBadge
+                                                value={t.status?.code || t.status?.name}
+                                                label={t.status?.name}
+                                                color={t.status?.color}
+                                                size="sm"
+                                            />
                                         </td>
                                         <td>
                                             <SLABadge status={t.sla_status} />
                                         </td>
                                         {isStaff() && (
-                                            <td style={{ fontSize: ".8rem" }}>
+                                            <td className="text-xs">
                                                 {t.assignee ? (
-                                                    `${t.assignee.first_name} ${t.assignee.last_name}`
+                                                    <span className="font-medium text-slate-700 dark:text-slate-300">
+                                                        {t.assignee.first_name} {t.assignee.last_name}
+                                                    </span>
                                                 ) : (
-                                                    <span
-                                                        style={{
-                                                            color: "var(--text-light)",
-                                                        }}
-                                                    >
+                                                    <span className="text-slate-400 italic">
                                                         Unassigned
                                                     </span>
                                                 )}
                                             </td>
                                         )}
-                                        <td
-                                            style={{
-                                                fontSize: ".78rem",
-                                                color: "var(--text-muted)",
-                                            }}
-                                        >
-                                            {new Date(
-                                                t.created_at,
-                                            ).toLocaleDateString()}
+                                        <td className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                                            {new Date(t.created_at).toLocaleDateString()}
                                         </td>
-                                        <td>
-                                            <div className="action-btns">
-                                                <Link
-                                                    to={`/tickets/${t.id}`}
-                                                    className="btn btn-secondary btn-xs"
-                                                >
-                                                    View
-                                                </Link>
-                                            </div>
+                                        <td className="text-right">
+                                            <Link
+                                                to={`/tickets/${t.id}`}
+                                                className="btn btn-secondary btn-xs inline-flex items-center gap-1"
+                                            >
+                                                <Eye size={12} />
+                                                <span>View</span>
+                                            </Link>
                                         </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
                                     <td
-                                        colSpan={9}
-                                        style={{
-                                            textAlign: "center",
-                                            padding: "3rem",
-                                            color: "var(--text-muted)",
-                                        }}
+                                        colSpan={isStaff() ? 9 : 8}
+                                        className="text-center py-12 text-slate-400"
                                     >
-                                        <div
-                                            style={{
-                                                fontSize: "2rem",
-                                                marginBottom: ".5rem",
-                                            }}
-                                        >
-                                            🎫
-                                        </div>
-                                        No tickets found.{" "}
-                                        <Link to="/tickets/create">
-                                            Raise one?
-                                        </Link>
+                                        <Ticket size={36} className="mx-auto mb-2 text-slate-300 dark:text-slate-600" />
+                                        <p className="font-medium text-slate-600 dark:text-slate-300">No tickets found</p>
+                                        <p className="text-xs text-slate-400 mt-0.5">
+                                            Try adjusting your search or filters, or{" "}
+                                            <Link to="/tickets/create" className="text-blue-600 hover:underline">
+                                                raise a new ticket
+                                            </Link>.
+                                        </p>
                                     </td>
                                 </tr>
                             )}
@@ -384,37 +357,44 @@ export default function TicketList() {
 
                 {/* Pagination */}
                 {pagination.last_page > 1 && (
-                    <div
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            padding: "1rem 1.25rem",
-                            borderTop: "1px solid var(--border)",
-                        }}
-                    >
-                        <span
-                            style={{
-                                fontSize: ".82rem",
-                                color: "var(--text-muted)",
-                            }}
-                        >
-                            Showing {pagination.from}–{pagination.to} of{" "}
-                            {pagination.total}
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-slate-800 text-xs">
+                        <span className="text-slate-500 dark:text-slate-400">
+                            Showing {pagination.from}–{pagination.to} of {pagination.total} tickets
                         </span>
-                        <div style={{ display: "flex", gap: ".4rem" }}>
+                        <div className="flex items-center gap-1">
+                            <button
+                                type="button"
+                                className="btn btn-secondary btn-xs px-2"
+                                disabled={+filters.page <= 1}
+                                onClick={() => setFilter("page", +filters.page - 1)}
+                                title="Previous page"
+                            >
+                                <ChevronLeft size={14} />
+                            </button>
                             {Array.from(
-                                { length: Math.min(pagination.last_page, 10) },
-                                (_, i) => i + 1,
+                                { length: Math.min(pagination.last_page, 7) },
+                                (_, i) => i + 1
                             ).map((p) => (
                                 <button
                                     key={p}
-                                    className={`btn btn-sm ${+filters.page === p ? "btn-primary" : "btn-secondary"}`}
+                                    type="button"
+                                    className={`btn btn-xs min-w-7 ${
+                                        +filters.page === p ? "btn-primary" : "btn-secondary"
+                                    }`}
                                     onClick={() => setFilter("page", p)}
                                 >
                                     {p}
                                 </button>
                             ))}
+                            <button
+                                type="button"
+                                className="btn btn-secondary btn-xs px-2"
+                                disabled={+filters.page >= pagination.last_page}
+                                onClick={() => setFilter("page", +filters.page + 1)}
+                                title="Next page"
+                            >
+                                <ChevronRight size={14} />
+                            </button>
                         </div>
                     </div>
                 )}

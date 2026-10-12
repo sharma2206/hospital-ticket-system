@@ -41,7 +41,7 @@ Route::middleware('auth:api')->group(function () {
         Route::put('/{ticket}',            [TicketController::class, 'update']);
         Route::patch('/{ticket}',          [TicketController::class, 'update']);
         Route::put('/{ticket}/status',     [TicketController::class, 'updateStatus']);
-        Route::post('/{ticket}/assign',    [TicketController::class, 'assign']);
+        Route::match(['post', 'put'], '/{ticket}/assign', [TicketController::class, 'assign']);
         Route::post('/{ticket}/escalate',  [TicketController::class, 'escalate']);
         Route::post('/{ticket}/reopen',    [TicketController::class, 'reopen']);
         Route::post('/{ticket}/clone',     [TicketController::class, 'clone']);

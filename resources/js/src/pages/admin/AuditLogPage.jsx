@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search } from "lucide-react";
+import { Search, History } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import api from "../../services/api";
 
@@ -54,7 +54,9 @@ export default function AuditLogPage() {
         <div style={{ display: "grid", gap: "1rem" }}>
             <div className="page-header">
                 <div>
-                    <div className="page-title">🧾 Audit Logs</div>
+                    <div className="page-title" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <History size={22} className="text-cyan-600" /> Audit Logs
+                    </div>
                     <div className="page-subtitle">
                         System activity and operational history
                     </div>

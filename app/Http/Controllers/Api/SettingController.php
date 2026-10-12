@@ -25,7 +25,11 @@ class SettingController extends Controller
         $settings = $query->orderBy('group')->orderBy('key')->get();
         $grouped = $settings->groupBy('group');
 
-        return response()->json(['data' => $grouped]);
+        if ($request->boolean('flat') || $request->get('format') === 'flat') {
+            return response()->json(['data' => $settings, 'grouped' => $grouped]);
+        }
+
+        return response()->json(['data' => $grouped, 'settings' => $settings]);
     }
 
     public function update(Request $request): JsonResponse

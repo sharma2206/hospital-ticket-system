@@ -2,6 +2,29 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
+    Ticket,
+    FolderOpen,
+    Clock,
+    CheckCircle2,
+    AlertOctagon,
+    AlertTriangle,
+    CalendarDays,
+    Calendar,
+    UserX,
+    UserCheck,
+    Flame,
+    Star,
+    TrendingUp,
+    LineChart as LineChartIcon,
+    PieChart as PieChartIcon,
+    Building2,
+    Hospital,
+    Users,
+    ArrowUpRight,
+    ListOrdered,
+    Plus,
+} from "lucide-react";
+import {
     AreaChart,
     Area,
     BarChart,
@@ -18,61 +41,27 @@ import {
 } from "recharts";
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+import MetricCard from "../Shared/MetricCard";
+import StatusBadge from "../Common/StatusBadge";
 
 const COLORS = [
-    "#0f766e",
+    "#2563eb",
+    "#10b981",
     "#f59e0b",
-    "#3b82f6",
     "#ef4444",
     "#8b5cf6",
-    "#10b981",
+    "#06b6d4",
     "#f97316",
 ];
 
-function StatCard({ label, value, icon, color = "#0f766e", sub }) {
-    return (
-        <div className="stat-card" style={{ "--stat-color": color }}>
-            <div
-                className="stat-card-icon"
-                style={{ background: color + "20" }}
-            >
-                {icon}
-            </div>
-            <div className="stat-card-label">{label}</div>
-            <div className="stat-card-value" style={{ color }}>
-                {value ?? 0}
-            </div>
-            {sub && <div className="stat-card-change">{sub}</div>}
-        </div>
-    );
-}
-
 export default function AdminDashboard() {
-    const { isStaff } = useAuth();
+    const { isStaff, user } = useAuth();
 
     const { data, isLoading } = useQuery({
         queryKey: ["dashboard"],
         queryFn: () => api.get("/dashboard").then((r) => r.data),
         refetchInterval: 60000,
     });
-
-    if (isLoading)
-        return (
-            <div>
-                <div className="page-header">
-                    <div className="page-title">Dashboard</div>
-                </div>
-                <div className="stats-grid">
-                    {Array(8)
-                        .fill(0)
-                        .map((_, i) => (
-                            <div key={i} className="stat-card">
-                                <div className="skeleton skeleton-card" />
-                            </div>
-                        ))}
-                </div>
-            </div>
-        );
 
     const s = data?.summary || {};
     const trend = data?.trend || [];
@@ -85,317 +74,367 @@ export default function AdminDashboard() {
 
     const avgResH = s.avg_resolution_min
         ? `~${Math.round(s.avg_resolution_min / 60)}h avg resolution`
-        : "";
+        : "No resolution data";
     const avgRespM = s.avg_response_min
-        ? `~${s.avg_response_min}m avg response`
-        : "";
+        ? `~${s.avg_response_min}m first response`
+        : "No response data";
 
     return (
-        <div>
+        <div className="space-y-6">
+            {/* Page Header */}
             <div className="page-header">
                 <div>
-                    <div className="page-title">
-                        📊 IT Service Desk Dashboard
-                    </div>
-                    <div className="page-subtitle">
-                        Real-time overview of all IT support operations
-                    </div>
+                    <h1 className="page-title flex items-center gap-2">
+                        <span>IT Operations Overview</span>
+                    </h1>
+                    <p className="page-subtitle">
+                        Real-time telemetry and service metrics for hospital IT operations
+                    </p>
+                </div>
+                <div className="flex items-center gap-2.5">
+                    <Link to="/tickets/create" className="btn btn-primary btn-sm flex items-center gap-1.5 shadow-sm">
+                        <Plus size={16} />
+                        <span>Raise Ticket</span>
+                    </Link>
                 </div>
             </div>
 
-            {/* KPI Strip */}
+            {/* KPI Metrics Grid */}
             <div
-                className="stats-grid"
+                className="grid gap-3.5"
                 style={{
-                    gridTemplateColumns: "repeat(auto-fit,minmax(165px,1fr))",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
                 }}
             >
-                <StatCard
-                    label="Total Tickets"
+                <MetricCard
+                    title="Total Tickets"
                     value={s.total}
-                    icon="🎫"
-                    color="#0f766e"
+                    icon={Ticket}
+                    color="#2563eb"
+                    sub="All time volume"
+                    isLoading={isLoading}
                 />
-                <StatCard
-                    label="Open"
+                <MetricCard
+                    title="Open Tickets"
                     value={s.open}
-                    icon="📂"
+                    icon={FolderOpen}
                     color="#f59e0b"
+                    sub="Awaiting triage"
+                    isLoading={isLoading}
                 />
-                <StatCard
-                    label="In Progress"
+                <MetricCard
+                    title="In Progress"
                     value={s.in_progress}
-                    icon="⚙️"
-                    color="#3b82f6"
+                    icon={Clock}
+                    color="#0284c7"
+                    sub="Under active investigation"
+                    isLoading={isLoading}
                 />
-                <StatCard
-                    label="Resolved"
+                <MetricCard
+                    title="Resolved"
                     value={s.resolved}
-                    icon="✅"
+                    icon={CheckCircle2}
                     color="#10b981"
+                    sub="Completed successfully"
+                    isLoading={isLoading}
                 />
-                <StatCard
-                    label="SLA Breached"
+                <MetricCard
+                    title="SLA Breached"
                     value={s.sla_breached}
-                    icon="⏰"
+                    icon={AlertOctagon}
                     color="#ef4444"
+                    sub="Service target exceeded"
+                    isLoading={isLoading}
                 />
-                <StatCard
-                    label="Overdue"
+                <MetricCard
+                    title="Overdue"
                     value={s.overdue}
-                    icon="🚨"
+                    icon={AlertTriangle}
                     color="#f97316"
+                    sub="Due date expired"
+                    isLoading={isLoading}
                 />
-                <StatCard
-                    label="Today"
+                <MetricCard
+                    title="Created Today"
                     value={s.today}
-                    icon="📅"
+                    icon={CalendarDays}
                     color="#8b5cf6"
+                    sub="Incoming today"
+                    isLoading={isLoading}
                 />
-                <StatCard
-                    label="This Month"
+                <MetricCard
+                    title="This Month"
                     value={s.monthly}
-                    icon="📆"
+                    icon={Calendar}
                     color="#0891b2"
                     sub={avgResH}
+                    isLoading={isLoading}
                 />
                 {isStaff() && (
-                    <StatCard
-                        label="Unassigned"
+                    <MetricCard
+                        title="Unassigned"
                         value={s.unassigned}
-                        icon="👁️"
+                        icon={UserX}
                         color="#dc2626"
+                        sub="Needs technician"
+                        isLoading={isLoading}
                     />
                 )}
                 {isStaff() && (
-                    <StatCard
-                        label="My Assigned"
+                    <MetricCard
+                        title="My Assigned"
                         value={s.my_assigned}
-                        icon="👤"
-                        color="#0f766e"
+                        icon={UserCheck}
+                        color="#0d9488"
+                        sub="Assigned to you"
+                        isLoading={isLoading}
                     />
                 )}
-                <StatCard
-                    label="Escalated"
+                <MetricCard
+                    title="Escalated"
                     value={s.escalated}
-                    icon="🔺"
+                    icon={Flame}
                     color="#b91c1c"
+                    sub="Priority escalations"
+                    isLoading={isLoading}
                 />
-                <StatCard
-                    label="Satisfaction"
-                    value={
-                        s.avg_satisfaction ? `${s.avg_satisfaction}/5` : "N/A"
-                    }
-                    icon="⭐"
+                <MetricCard
+                    title="Satisfaction"
+                    value={s.avg_satisfaction ? `${s.avg_satisfaction}/5` : "N/A"}
+                    icon={Star}
                     color="#f59e0b"
                     sub={avgRespM}
+                    isLoading={isLoading}
                 />
             </div>
 
-            {/* Charts Row 1 */}
-            <div
-                style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-                    gap: "1rem",
-                    marginBottom: "1rem",
-                }}
-            >
-                <div className="card">
+            {/* Charts Row 1: Trend & Priority Distribution */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                {/* 30-Day Trend */}
+                <div className="card lg:col-span-2">
                     <div className="card-header">
-                        <div className="card-title">
-                            📈 Ticket Trend (30 Days)
+                        <div className="card-title flex items-center gap-2">
+                            <LineChartIcon size={18} className="text-blue-500" />
+                            <span>Ticket Volume Trend (30 Days)</span>
                         </div>
                     </div>
                     <div className="card-body">
-                        <ResponsiveContainer width="100%" height={220}>
-                            <AreaChart data={trend}>
-                                <defs>
-                                    <linearGradient
-                                        id="tg"
-                                        x1="0"
-                                        y1="0"
-                                        x2="0"
-                                        y2="1"
-                                    >
-                                        <stop
-                                            offset="5%"
-                                            stopColor="#0f766e"
-                                            stopOpacity={0.3}
-                                        />
-                                        <stop
-                                            offset="95%"
-                                            stopColor="#0f766e"
-                                            stopOpacity={0}
-                                        />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid
-                                    strokeDasharray="3 3"
-                                    stroke="var(--border)"
-                                />
-                                <XAxis
-                                    dataKey="date"
-                                    tick={{ fontSize: 10 }}
-                                    tickFormatter={(d) => d.slice(5)}
-                                />
-                                <YAxis tick={{ fontSize: 10 }} />
-                                <Tooltip />
-                                <Area
-                                    type="monotone"
-                                    dataKey="count"
-                                    stroke="#0f766e"
-                                    fill="url(#tg)"
-                                    strokeWidth={2}
-                                    name="Tickets"
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
-                <div className="card">
-                    <div className="card-header">
-                        <div className="card-title">
-                            🎯 Priority Distribution
-                        </div>
-                    </div>
-                    <div className="card-body">
-                        <ResponsiveContainer width="100%" height={220}>
-                            <PieChart>
-                                <Pie
-                                    data={byPriority}
-                                    dataKey="count"
-                                    nameKey="name"
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={50}
-                                    outerRadius={80}
-                                    paddingAngle={3}
-                                >
-                                    {byPriority.map((entry, i) => (
-                                        <Cell
-                                            key={i}
-                                            fill={
-                                                entry.color ||
-                                                COLORS[i % COLORS.length]
-                                            }
-                                        />
-                                    ))}
-                                </Pie>
-                                <Tooltip />
-                                <Legend iconSize={10} />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-            </div>
-
-            {/* Charts Row 2 */}
-            <div
-                style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-                    gap: "1rem",
-                    marginBottom: "1rem",
-                }}
-            >
-                <div className="card">
-                    <div className="card-header">
-                        <div className="card-title">
-                            🏢 Department-wise Tickets
-                        </div>
-                    </div>
-                    <div className="card-body">
-                        <ResponsiveContainer width="100%" height={200}>
-                            <BarChart data={byDept} layout="vertical">
-                                <CartesianGrid
-                                    strokeDasharray="3 3"
-                                    stroke="var(--border)"
-                                />
-                                <XAxis type="number" tick={{ fontSize: 10 }} />
-                                <YAxis
-                                    type="category"
-                                    dataKey="name"
-                                    tick={{ fontSize: 10 }}
-                                    width={100}
-                                />
-                                <Tooltip />
-                                <Bar
-                                    dataKey="count"
-                                    fill="#0f766e"
-                                    radius={[0, 4, 4, 0]}
-                                    name="Tickets"
-                                />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
-                <div className="card">
-                    <div className="card-header">
-                        <div className="card-title">🏥 Branch-wise Tickets</div>
-                    </div>
-                    <div className="card-body">
-                        <ResponsiveContainer width="100%" height={200}>
-                            <BarChart data={byBranch}>
-                                <CartesianGrid
-                                    strokeDasharray="3 3"
-                                    stroke="var(--border)"
-                                />
-                                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                                <YAxis tick={{ fontSize: 10 }} />
-                                <Tooltip />
-                                <Bar
-                                    dataKey="count"
-                                    fill="#8b5cf6"
-                                    radius={[4, 4, 0, 0]}
-                                    name="Tickets"
-                                />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-            </div>
-
-            {/* Technician Workload + Recent Tickets */}
-            <div
-                style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                    gap: "1rem",
-                }}
-            >
-                {isStaff() && techWorkload.length > 0 && (
-                    <div className="card">
-                        <div className="card-header">
-                            <div className="card-title">
-                                👨‍💻 Technician Workload
-                            </div>
-                        </div>
-                        <div className="card-body">
-                            <ResponsiveContainer width="100%" height={200}>
-                                <BarChart data={techWorkload} layout="vertical">
-                                    <CartesianGrid
-                                        strokeDasharray="3 3"
-                                        stroke="var(--border)"
-                                    />
+                        {isLoading ? (
+                            <div className="skeleton h-56 w-full rounded-xl" />
+                        ) : (
+                            <ResponsiveContainer width="100%" height={230}>
+                                <AreaChart data={trend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#2563eb" stopOpacity={0.25} />
+                                            <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.6} />
                                     <XAxis
-                                        type="number"
-                                        tick={{ fontSize: 10 }}
+                                        dataKey="date"
+                                        tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+                                        tickFormatter={(d) => d.slice(5)}
                                     />
+                                    <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: 'var(--bg-card)',
+                                            borderColor: 'var(--border)',
+                                            borderRadius: '0.75rem',
+                                            boxShadow: 'var(--shadow)',
+                                            color: 'var(--text)',
+                                        }}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="count"
+                                        stroke="#2563eb"
+                                        fill="url(#trendGradient)"
+                                        strokeWidth={2.5}
+                                        name="Tickets"
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        )}
+                    </div>
+                </div>
+
+                {/* Priority Breakdown */}
+                <div className="card">
+                    <div className="card-header">
+                        <div className="card-title flex items-center gap-2">
+                            <PieChartIcon size={18} className="text-purple-500" />
+                            <span>Priority Breakdown</span>
+                        </div>
+                    </div>
+                    <div className="card-body">
+                        {isLoading ? (
+                            <div className="skeleton h-56 w-full rounded-xl" />
+                        ) : byPriority.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={230}>
+                                <PieChart>
+                                    <Pie
+                                        data={byPriority}
+                                        dataKey="count"
+                                        nameKey="name"
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={55}
+                                        outerRadius={80}
+                                        paddingAngle={4}
+                                    >
+                                        {byPriority.map((entry, i) => (
+                                            <Cell
+                                                key={i}
+                                                fill={entry.color || COLORS[i % COLORS.length]}
+                                            />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: 'var(--bg-card)',
+                                            borderColor: 'var(--border)',
+                                            borderRadius: '0.75rem',
+                                            color: 'var(--text)',
+                                        }}
+                                    />
+                                    <Legend iconSize={9} wrapperStyle={{ fontSize: '11px' }} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-56 flex items-center justify-center text-xs text-slate-400">
+                                No priority data recorded
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Charts Row 2: Department & Branch Distribution */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Department Distribution */}
+                <div className="card">
+                    <div className="card-header">
+                        <div className="card-title flex items-center gap-2">
+                            <Building2 size={18} className="text-teal-500" />
+                            <span>Department-wise Tickets</span>
+                        </div>
+                    </div>
+                    <div className="card-body">
+                        {isLoading ? (
+                            <div className="skeleton h-48 w-full rounded-xl" />
+                        ) : byDept.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={210}>
+                                <BarChart data={byDept} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.6} />
+                                    <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
                                     <YAxis
                                         type="category"
                                         dataKey="name"
-                                        tick={{ fontSize: 10 }}
-                                        width={80}
+                                        tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+                                        width={90}
                                     />
-                                    <Tooltip />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: 'var(--bg-card)',
+                                            borderColor: 'var(--border)',
+                                            borderRadius: '0.75rem',
+                                            color: 'var(--text)',
+                                        }}
+                                    />
+                                    <Bar
+                                        dataKey="count"
+                                        fill="#0d9488"
+                                        radius={[0, 6, 6, 0]}
+                                        name="Tickets"
+                                    />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-48 flex items-center justify-center text-xs text-slate-400">
+                                No department data
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Branch Distribution */}
+                <div className="card">
+                    <div className="card-header">
+                        <div className="card-title flex items-center gap-2">
+                            <Hospital size={18} className="text-indigo-500" />
+                            <span>Branch-wise Tickets</span>
+                        </div>
+                    </div>
+                    <div className="card-body">
+                        {isLoading ? (
+                            <div className="skeleton h-48 w-full rounded-xl" />
+                        ) : byBranch.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={210}>
+                                <BarChart data={byBranch} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.6} />
+                                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                    <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: 'var(--bg-card)',
+                                            borderColor: 'var(--border)',
+                                            borderRadius: '0.75rem',
+                                            color: 'var(--text)',
+                                        }}
+                                    />
+                                    <Bar
+                                        dataKey="count"
+                                        fill="#6366f1"
+                                        radius={[6, 6, 0, 0]}
+                                        name="Tickets"
+                                    />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-48 flex items-center justify-center text-xs text-slate-400">
+                                No branch data
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Technician Workload & Recent Tickets */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                {isStaff() && techWorkload.length > 0 && (
+                    <div className="card">
+                        <div className="card-header">
+                            <div className="card-title flex items-center gap-2">
+                                <Users size={18} className="text-amber-500" />
+                                <span>Technician Workload</span>
+                            </div>
+                        </div>
+                        <div className="card-body">
+                            <ResponsiveContainer width="100%" height={220}>
+                                <BarChart data={techWorkload} layout="vertical" margin={{ top: 5, right: 15, left: 15, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.6} />
+                                    <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                    <YAxis
+                                        type="category"
+                                        dataKey="name"
+                                        tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+                                        width={85}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: 'var(--bg-card)',
+                                            borderColor: 'var(--border)',
+                                            borderRadius: '0.75rem',
+                                            color: 'var(--text)',
+                                        }}
+                                    />
                                     <Bar
                                         dataKey="count"
                                         fill="#f59e0b"
-                                        radius={[0, 4, 4, 0]}
-                                        name="Assigned"
+                                        radius={[0, 6, 6, 0]}
+                                        name="Active Assigned"
                                     />
                                 </BarChart>
                             </ResponsiveContainer>
@@ -403,11 +442,15 @@ export default function AdminDashboard() {
                     </div>
                 )}
 
-                <div className="card" style={{ flex: 1 }}>
+                <div className={`card ${isStaff() && techWorkload.length > 0 ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
                     <div className="card-header">
-                        <div className="card-title">🕐 Recent Tickets</div>
-                        <Link to="/tickets" className="btn btn-secondary btn-sm">
-                            View All
+                        <div className="card-title flex items-center gap-2">
+                            <ListOrdered size={18} className="text-blue-500" />
+                            <span>Recent Ticket Activity</span>
+                        </div>
+                        <Link to="/tickets" className="btn btn-secondary btn-xs flex items-center gap-1">
+                            <span>View All</span>
+                            <ArrowUpRight size={14} />
                         </Link>
                     </div>
                     <div className="table-wrapper">
@@ -427,55 +470,32 @@ export default function AdminDashboard() {
                                         <td>
                                             <Link
                                                 to={`/tickets/${t.id}`}
-                                                className="table-link"
+                                                className="table-link font-mono font-medium text-xs text-blue-600 dark:text-blue-400"
                                             >
                                                 {t.ticket_number}
                                             </Link>
                                         </td>
-                                        <td
-                                            style={{
-                                                maxWidth: 200,
-                                                overflow: "hidden",
-                                                textOverflow: "ellipsis",
-                                                whiteSpace: "nowrap",
-                                            }}
-                                        >
+                                        <td className="max-w-xs truncate font-medium text-slate-800 dark:text-slate-200">
                                             {t.title}
                                         </td>
                                         <td>
-                                            <span
-                                                className="badge"
-                                                style={{
-                                                    background:
-                                                        t.status?.color + "20",
-                                                    color: t.status?.color,
-                                                }}
-                                            >
-                                                {t.status?.name}
-                                            </span>
+                                            <StatusBadge
+                                                value={t.status?.code || t.status?.name}
+                                                label={t.status?.name}
+                                                color={t.status?.color}
+                                                size="sm"
+                                            />
                                         </td>
                                         <td>
-                                            <span
-                                                className="badge"
-                                                style={{
-                                                    background:
-                                                        t.priority?.color +
-                                                        "20",
-                                                    color: t.priority?.color,
-                                                }}
-                                            >
-                                                {t.priority?.name}
-                                            </span>
+                                            <StatusBadge
+                                                value={t.priority?.name}
+                                                label={t.priority?.name}
+                                                color={t.priority?.color}
+                                                size="sm"
+                                            />
                                         </td>
-                                        <td
-                                            style={{
-                                                fontSize: ".78rem",
-                                                color: "var(--text-muted)",
-                                            }}
-                                        >
-                                            {new Date(
-                                                t.created_at,
-                                            ).toLocaleDateString()}
+                                        <td className="text-xs text-slate-500 dark:text-slate-400">
+                                            {new Date(t.created_at).toLocaleDateString()}
                                         </td>
                                     </tr>
                                 ))}
@@ -483,13 +503,9 @@ export default function AdminDashboard() {
                                     <tr>
                                         <td
                                             colSpan={5}
-                                            style={{
-                                                textAlign: "center",
-                                                color: "var(--text-muted)",
-                                                padding: "2rem",
-                                            }}
+                                            className="text-center text-slate-400 py-10"
                                         >
-                                            No tickets yet
+                                            No recent tickets recorded
                                         </td>
                                     </tr>
                                 )}

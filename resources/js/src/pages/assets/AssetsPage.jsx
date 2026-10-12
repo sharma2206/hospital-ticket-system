@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Laptop } from "lucide-react";
 import api from "../../services/api";
 
 export default function AssetsPage() {
@@ -57,7 +57,9 @@ export default function AssetsPage() {
         <div style={{ display: "grid", gap: "1rem" }}>
             <div className="page-header">
                 <div>
-                    <div className="page-title">💻 Asset Inventory</div>
+                    <div className="page-title" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <Laptop size={22} className="text-cyan-600" /> Asset Inventory
+                    </div>
                     <div className="page-subtitle">
                         {pagination.total ?? 0} tracked assets
                     </div>

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Hospital } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
 export default function Navbar() {
@@ -6,7 +7,9 @@ export default function Navbar() {
     return (
         <nav className="bg-blue-800 text-white px-6 py-3 flex justify-between items-center">
             <div className="flex gap-6 items-center">
-                <span className="font-bold text-lg">🏥 HIMS Support</span>
+                <span className="font-bold text-lg flex items-center gap-1.5">
+                    <Hospital size={20} /> HIMS Support
+                </span>
                 <Link to="/dashboard" className="hover:underline text-sm">
                     Dashboard
                 </Link>

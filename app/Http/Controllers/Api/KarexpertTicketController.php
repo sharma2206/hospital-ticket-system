@@ -179,10 +179,10 @@ class KarexpertTicketController extends Controller
 
         $today = date('Ymd');
         $prefix = "KX-{$today}-";
-        $latest = Ticket::where('ticket_type', 'karexpert')
+        $count = Ticket::where('ticket_type', 'karexpert')
             ->where('ticket_number', 'like', "{$prefix}%")
-            ->max(DB::raw("CAST(SUBSTRING_INDEX(ticket_number, '-', -1) AS UNSIGNED)"));
-        $ticketNumber = $prefix . str_pad(($latest ?? 0) + 1, 5, '0', STR_PAD_LEFT);
+            ->count();
+        $ticketNumber = $prefix . str_pad($count + 1, 5, '0', STR_PAD_LEFT);
 
         $ticket = Ticket::create([
             ...$validated,
