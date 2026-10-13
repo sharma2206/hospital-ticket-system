@@ -78,6 +78,10 @@ class TicketController extends Controller
             $query->where('source', $request->source);
         }
 
+        if ($request->filled('asset_id')) {
+            $query->where('asset_id', $request->asset_id);
+        }
+
         if ($request->boolean('is_escalated')) {
             $query->where('is_escalated', true);
         }

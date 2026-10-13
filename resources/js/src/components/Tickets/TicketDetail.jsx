@@ -726,7 +726,14 @@ export default function TicketDetail() {
                             {data.asset && (
                                 <DetailLabel
                                     label="Related Asset"
-                                    value={`${data.asset.asset_code} · ${data.asset.name}`}
+                                    value={
+                                        <Link
+                                            to={`/assets/${data.asset.id}`}
+                                            className="text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                                        >
+                                            {data.asset.asset_code} · {data.asset.name}
+                                        </Link>
+                                    }
                                     icon={Laptop}
                                 />
                             )}

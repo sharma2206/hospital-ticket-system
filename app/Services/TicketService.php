@@ -310,12 +310,14 @@ class TicketService
         $path = $file->store("tickets/{$ticket->id}/attachments", 'public');
 
         return \App\Models\TicketAttachment::create([
-            'ticket_id'   => $ticket->id,
-            'file_name'   => $file->getClientOriginalName(),
-            'file_path'   => $path,
-            'file_type'   => $file->getMimeType(),
-            'file_size'   => $file->getSize(),
-            'uploaded_by' => $userId,
+            'ticket_id'         => $ticket->id,
+            'user_id'           => $userId,
+            'original_filename' => $file->getClientOriginalName(),
+            'stored_filename'   => basename($path),
+            'file_path'         => $path,
+            'mime_type'         => $file->getMimeType(),
+            'file_size'         => $file->getSize(),
+            'uploaded_at'       => now(),
         ]);
     }
 }

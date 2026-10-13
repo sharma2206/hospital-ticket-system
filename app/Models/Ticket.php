@@ -299,13 +299,25 @@ class Ticket extends Model
         $year = date('Y');
         $prefix = "IT-{$year}-";
 
-        $latest = DB::table('tickets')
-            ->where('ticket_number', 'like', "{$prefix}%")
-            ->where('ticket_type', 'internal')
-            ->lockForUpdate()
-            ->max(DB::raw("CAST(SUBSTRING_INDEX(ticket_number, '-', -1) AS UNSIGNED)"));
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            $latest = DB::table('tickets')
+                ->where('ticket_number', 'like', "{$prefix}%")
+                ->where('ticket_type', 'internal')
+                ->orderBy('id', 'desc')
+                ->value('ticket_number');
 
-        $next = ($latest ?? 0) + 1;
+            $latestNum = $latest ? (int) substr(strrchr($latest, '-'), 1) : 0;
+            $next = $latestNum + 1;
+        } else {
+            $latest = DB::table('tickets')
+                ->where('ticket_number', 'like', "{$prefix}%")
+                ->where('ticket_type', 'internal')
+                ->lockForUpdate()
+                ->max(DB::raw("CAST(SUBSTRING_INDEX(ticket_number, '-', -1) AS UNSIGNED)"));
+
+            $next = ($latest ?? 0) + 1;
+        }
+
         return $prefix . str_pad($next, 6, '0', STR_PAD_LEFT);
     }
 

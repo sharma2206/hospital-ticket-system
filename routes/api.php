@@ -19,6 +19,8 @@ use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\KarexpertTicketController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\AssetCategoryController;
+use App\Http\Controllers\Api\MaintenanceScheduleController;
 
 // ─── Public Routes ──────────────────────────────────────────────────────────
 Route::post('/auth/register', [AuthController::class, 'register']);
@@ -137,8 +139,18 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/roles/{role}/duplicate',         [RoleController::class, 'duplicate'])->middleware('role:super_admin|admin');
     Route::get('/roles/{role}/users',              [RoleController::class, 'users'])->middleware('role:super_admin|admin');
 
+    // ── Asset Categories ───────────────────────────────────────────
+    Route::get('/asset-categories',                                  [AssetCategoryController::class, 'index']);
+    Route::post('/asset-categories',                                 [AssetCategoryController::class, 'store'])->middleware('role:super_admin|admin|it_manager');
+    Route::get('/asset-categories/{assetCategory}',                  [AssetCategoryController::class, 'show']);
+    Route::put('/asset-categories/{assetCategory}',                  [AssetCategoryController::class, 'update'])->middleware('role:super_admin|admin|it_manager');
+    Route::patch('/asset-categories/{assetCategory}/toggle-active',  [AssetCategoryController::class, 'toggleActive'])->middleware('role:super_admin|admin|it_manager');
+    Route::delete('/asset-categories/{assetCategory}',               [AssetCategoryController::class, 'destroy'])->middleware('role:super_admin|admin|it_manager');
+
     // ── Assets ─────────────────────────────────────────────────────
-    // NOTE: /assets/categories MUST come before /assets/{asset} to avoid being captured as a param
+    // Sub-paths must precede /{asset} to avoid parameter capture
+    Route::get('/assets/dashboard',         [AssetController::class, 'dashboard']);
+    Route::get('/assets/export',            [AssetController::class, 'export']);
     Route::get('/assets/categories',        [AssetController::class, 'categories']);
     Route::get('/assets',                   [AssetController::class, 'index']);
     Route::post('/assets',                  [AssetController::class, 'store'])->middleware('role:super_admin|admin|it_manager|team_lead|technician|it_staff');
@@ -146,6 +158,18 @@ Route::middleware('auth:api')->group(function () {
     Route::put('/assets/{asset}',           [AssetController::class, 'update'])->middleware('role:super_admin|admin|it_manager|team_lead|technician|it_staff');
     Route::delete('/assets/{asset}',        [AssetController::class, 'destroy'])->middleware('role:super_admin|admin|it_manager');
     Route::get('/assets/{asset}/history',   [AssetController::class, 'history']);
+    Route::post('/assets/{asset}/assign',   [AssetController::class, 'assign'])->middleware('role:super_admin|admin|it_manager|team_lead|technician|it_staff');
+    Route::post('/assets/{asset}/transfer', [AssetController::class, 'transfer'])->middleware('role:super_admin|admin|it_manager|team_lead|technician|it_staff');
+    Route::post('/assets/{asset}/return',   [AssetController::class, 'returnAsset'])->middleware('role:super_admin|admin|it_manager|team_lead|technician|it_staff');
+    Route::post('/assets/{asset}/status',   [AssetController::class, 'updateStatus'])->middleware('role:super_admin|admin|it_manager|team_lead|technician|it_staff');
+
+    // ── Maintenance Schedules ──────────────────────────────────────
+    Route::get('/maintenance-schedules',                                 [MaintenanceScheduleController::class, 'index']);
+    Route::post('/maintenance-schedules',                                [MaintenanceScheduleController::class, 'store'])->middleware('role:super_admin|admin|it_manager|team_lead|technician|it_staff');
+    Route::get('/maintenance-schedules/{maintenanceSchedule}',          [MaintenanceScheduleController::class, 'show']);
+    Route::put('/maintenance-schedules/{maintenanceSchedule}',          [MaintenanceScheduleController::class, 'update'])->middleware('role:super_admin|admin|it_manager|team_lead|technician|it_staff');
+    Route::post('/maintenance-schedules/{maintenanceSchedule}/complete',[MaintenanceScheduleController::class, 'complete'])->middleware('role:super_admin|admin|it_manager|team_lead|technician|it_staff');
+    Route::delete('/maintenance-schedules/{maintenanceSchedule}',       [MaintenanceScheduleController::class, 'destroy'])->middleware('role:super_admin|admin|it_manager');
 
     // ── Knowledge Base ─────────────────────────────────────────────
     Route::get('/knowledge',                              [KnowledgeArticleController::class, 'index']);
