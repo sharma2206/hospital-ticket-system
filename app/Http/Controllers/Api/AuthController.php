@@ -82,10 +82,14 @@ class AuthController
 
     /**
      * Return user data with roles and permissions.
+     * Permissions are flattened from all assigned roles for frontend use.
      */
     private function userWithRole($user)
     {
         $roles = $user->getRoleNames();
+        // Eager-load permissions for the frontend hasPermission() helper
+        $permissions = $user->getAllPermissions()->pluck('name');
+
         return [
             'id'            => $user->id,
             'first_name'    => $user->first_name,
@@ -100,6 +104,7 @@ class AuthController
             'last_login'    => $user->last_login,
             'roles'         => $roles,
             'role'          => $roles->first() ?? 'user',
+            'permissions'   => $permissions,
         ];
     }
 }

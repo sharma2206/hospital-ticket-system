@@ -6,14 +6,32 @@ use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 
+/**
+ * Idempotent seeder: uses firstOrCreate for roles and permissions.
+ *
+ * SAFE TO RE-RUN — will NOT overwrite permissions that were changed via the UI.
+ * It only sets permissions the first time a role is created.
+ * Existing roles/permissions are never deleted.
+ *
+ * To reset all role permissions to baseline, run:
+ *   php artisan db:seed --class=RolesAndPermissionsSeeder --force-reset
+ * (The --force-reset flag is checked below.)
+ */
 class RolesAndPermissionsSeeder extends Seeder
 {
+    /** If true, existing role permissions are overwritten with baseline values. */
+    private bool $forceReset = false;
+
     public function run(): void
     {
+        $this->forceReset = app()->runningInConsole()
+            && in_array('--force-reset', $_SERVER['argv'] ?? []);
+
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // ── 14 Granular Permissions ─────────────────────────────────
+        // ── Ensure all baseline permissions exist ─────────────────────────
         $permissions = [
+            // Granular ticket permissions
             'create-ticket',
             'edit-ticket',
             'delete-ticket',
@@ -21,6 +39,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'reassign-ticket',
             'close-ticket',
             'reopen-ticket',
+            // Other modules
             'view-reports',
             'manage-assets',
             'manage-sla',
@@ -28,6 +47,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'manage-departments',
             'manage-branches',
             'configure-settings',
+            'manage-roles',
             // Legacy / internal permissions kept for backward compat
             'view-tickets',
             'create-tickets',
@@ -44,78 +64,102 @@ class RolesAndPermissionsSeeder extends Seeder
             Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'api']);
         }
 
-        // ── Super Admin — unrestricted ──────────────────────────────
-        $superAdmin = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'api']);
-        $superAdmin->syncPermissions(Permission::where('guard_name', 'api')->get());
+        // ── Create roles (no permission assignment if role already exists) ─
+        $this->ensureRole('super_admin', [
+            // Super admin gets ALL permissions on first seed
+            'create-ticket', 'edit-ticket', 'delete-ticket', 'assign-ticket',
+            'reassign-ticket', 'close-ticket', 'reopen-ticket', 'view-reports',
+            'manage-assets', 'manage-sla', 'manage-users', 'manage-departments',
+            'manage-branches', 'configure-settings', 'manage-roles',
+            'view-tickets', 'create-tickets', 'update-tickets', 'delete-tickets',
+            'assign-tickets', 'manage-tickets', 'view-dashboard', 'manage-categories',
+            'manage-system',
+        ]);
 
-        // ── IT Manager ──────────────────────────────────────────────
-        $itManager = Role::firstOrCreate(['name' => 'it_manager', 'guard_name' => 'api']);
-        $itManager->syncPermissions([
+        $this->ensureRole('it_manager', [
             'create-ticket', 'edit-ticket', 'delete-ticket', 'assign-ticket',
             'reassign-ticket', 'close-ticket', 'reopen-ticket', 'view-reports',
             'manage-assets', 'manage-sla', 'manage-users', 'manage-departments',
             'manage-branches',
-            // legacy
             'view-tickets', 'create-tickets', 'update-tickets', 'delete-tickets',
             'assign-tickets', 'manage-tickets', 'view-dashboard', 'manage-categories',
         ]);
 
-        // ── Team Lead ───────────────────────────────────────────────
-        $teamLead = Role::firstOrCreate(['name' => 'team_lead', 'guard_name' => 'api']);
-        $teamLead->syncPermissions([
+        $this->ensureRole('team_lead', [
             'create-ticket', 'edit-ticket', 'assign-ticket', 'reassign-ticket',
             'close-ticket', 'reopen-ticket', 'view-reports', 'manage-assets',
-            // legacy
             'view-tickets', 'create-tickets', 'update-tickets', 'assign-tickets',
             'manage-tickets', 'view-dashboard',
         ]);
 
-        // ── Technician ──────────────────────────────────────────────
-        $technician = Role::firstOrCreate(['name' => 'technician', 'guard_name' => 'api']);
-        $technician->syncPermissions([
+        $this->ensureRole('technician', [
             'create-ticket', 'edit-ticket', 'close-ticket', 'manage-assets',
-            // legacy
             'view-tickets', 'create-tickets', 'update-tickets', 'manage-tickets',
             'view-dashboard',
         ]);
 
-        // ── Department Coordinator ──────────────────────────────────
-        $deptCoord = Role::firstOrCreate(['name' => 'dept_coordinator', 'guard_name' => 'api']);
-        $deptCoord->syncPermissions([
+        $this->ensureRole('dept_coordinator', [
             'create-ticket', 'view-reports',
-            // legacy
             'view-tickets', 'create-tickets', 'view-dashboard',
         ]);
 
-        // ── Employee (regular user) ─────────────────────────────────
-        $employee = Role::firstOrCreate(['name' => 'employee', 'guard_name' => 'api']);
-        $employee->syncPermissions([
+        $this->ensureRole('employee', [
             'create-ticket',
-            // legacy
             'view-tickets', 'create-tickets', 'view-dashboard',
         ]);
 
-        // ── Vendor ─────────────────────────────────────────────────
-        $vendor = Role::firstOrCreate(['name' => 'vendor', 'guard_name' => 'api']);
-        $vendor->syncPermissions([
+        $this->ensureRole('vendor', [
             'view-tickets', 'view-dashboard',
         ]);
 
-        // ── Legacy roles (backward compat) ──────────────────────────
-        $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'api']);
-        $admin->syncPermissions(Permission::where('guard_name', 'api')->get());
+        // ── Legacy roles (backward compat) ────────────────────────────────
+        $this->ensureRole('admin', [
+            'create-ticket', 'edit-ticket', 'delete-ticket', 'assign-ticket',
+            'reassign-ticket', 'close-ticket', 'reopen-ticket', 'view-reports',
+            'manage-assets', 'manage-sla', 'manage-users', 'manage-departments',
+            'manage-branches', 'configure-settings', 'manage-roles',
+            'view-tickets', 'create-tickets', 'update-tickets', 'delete-tickets',
+            'assign-tickets', 'manage-tickets', 'view-dashboard', 'manage-categories',
+            'manage-system',
+        ]);
 
-        $itStaff = Role::firstOrCreate(['name' => 'it_staff', 'guard_name' => 'api']);
-        $itStaff->syncPermissions([
+        $this->ensureRole('it_staff', [
             'create-ticket', 'edit-ticket', 'assign-ticket', 'reassign-ticket',
             'close-ticket', 'reopen-ticket', 'view-reports', 'manage-assets',
             'view-tickets', 'create-tickets', 'update-tickets', 'assign-tickets',
             'manage-tickets', 'view-dashboard',
         ]);
 
-        $user = Role::firstOrCreate(['name' => 'user', 'guard_name' => 'api']);
-        $user->syncPermissions([
+        $this->ensureRole('user', [
             'create-ticket', 'view-tickets', 'create-tickets', 'view-dashboard',
         ]);
+
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+    }
+
+    /**
+     * Create role if it doesn't exist, assign baseline permissions only on creation
+     * OR when --force-reset flag is provided.
+     *
+     * Super Admin role always gets ALL current permissions synced (safety net).
+     */
+    private function ensureRole(string $roleName, array $baselinePermissions): void
+    {
+        $isNew = !Role::where('name', $roleName)->where('guard_name', 'api')->exists();
+        $role  = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'api']);
+
+        if ($roleName === 'super_admin') {
+            // Super admin always has ALL permissions — this is the safety net
+            $role->syncPermissions(Permission::where('guard_name', 'api')->get());
+            return;
+        }
+
+        if ($isNew || $this->forceReset) {
+            $permissionObjects = Permission::where('guard_name', 'api')
+                ->whereIn('name', $baselinePermissions)
+                ->get();
+            $role->syncPermissions($permissionObjects);
+        }
+        // Existing role with no --force-reset: permissions are left as-is (UI changes preserved)
     }
 }

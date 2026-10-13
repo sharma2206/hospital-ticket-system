@@ -12,6 +12,8 @@ import {
     X,
 } from "lucide-react";
 import api from "../../services/api";
+import PageHeader from "../../components/Shared/PageHeader";
+import StatusBadge from "../../components/Common/StatusBadge";
 
 const emptyForm = {
     first_name: "",
@@ -144,24 +146,12 @@ export default function UsersPage() {
     };
 
     return (
-        <div style={{ display: "grid", gap: "1.25rem" }}>
-            <div className="page-header">
-                <div>
-                    <div
-                        className="page-title"
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                        }}
-                    >
-                        <UserCog size={20} /> Users
-                    </div>
-                    <div className="page-subtitle">
-                        System user management, assignments, and roles.
-                    </div>
-                </div>
-            </div>
+        <div className="page-container">
+            <PageHeader
+                title="Users"
+                subtitle="System user accounts, department assignments, and permission roles"
+                icon={UserCog}
+            />
 
             <div className="card" style={{ padding: "1rem" }}>
                 <form
@@ -476,28 +466,20 @@ export default function UsersPage() {
                                             </div>
                                         </td>
                                         <td>
-                                            <span
-                                                className="badge badge-open"
-                                                style={{
-                                                    background: "#e0f2fe",
-                                                    color: "#075985",
-                                                }}
-                                            >
-                                                {user.roles?.[0]?.name ??
-                                                    "user"}
-                                            </span>
+                                            <StatusBadge
+                                                value={user.roles?.[0]?.name ?? "employee"}
+                                                size="sm"
+                                            />
                                         </td>
                                         <td>{user.department?.name || "—"}</td>
                                         <td>{user.branch?.name || "—"}</td>
                                         <td>{user.employee_id || "—"}</td>
                                         <td>
-                                            <span
-                                                className={`badge ${user.is_active ? "badge-open" : "badge-closed"}`}
-                                            >
-                                                {user.is_active
-                                                    ? "Active"
-                                                    : "Inactive"}
-                                            </span>
+                                            <StatusBadge
+                                                value={user.is_active ? "active" : "inactive"}
+                                                label={user.is_active ? "Active" : "Inactive"}
+                                                size="sm"
+                                            />
                                         </td>
                                         <td>
                                             <div

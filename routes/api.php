@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\KarexpertTicketController;
+use App\Http\Controllers\Api\RoleController;
 
 // ─── Public Routes ──────────────────────────────────────────────────────────
 Route::post('/auth/register', [AuthController::class, 'register']);
@@ -123,7 +124,18 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/users/{user}/change-password', [UserController::class, 'changePassword'])->middleware('role:super_admin|admin|it_manager');
     Route::post('/users/{user}/toggle-active',   [UserController::class, 'toggleActive'])->middleware('role:super_admin|admin|it_manager');
     Route::post('/users/{user}/roles',            [UserController::class, 'assignRole'])->middleware('role:super_admin|admin');
-    Route::get('/roles',              [UserController::class, 'roles']);
+
+    // ── Roles & Permissions Management ─────────────────────────────
+    // NOTE: /roles/permissions MUST come before /roles/{role} to avoid being captured as a param
+    Route::get('/roles',                           [RoleController::class, 'index']);
+    Route::post('/roles',                          [RoleController::class, 'store'])->middleware('role:super_admin|admin');
+    Route::get('/roles/permissions',               [RoleController::class, 'permissions']);
+    Route::get('/roles/{role}',                    [RoleController::class, 'show']);
+    Route::put('/roles/{role}',                    [RoleController::class, 'update'])->middleware('role:super_admin|admin');
+    Route::delete('/roles/{role}',                 [RoleController::class, 'destroy'])->middleware('role:super_admin|admin');
+    Route::post('/roles/{role}/permissions',       [RoleController::class, 'syncPermissions'])->middleware('role:super_admin|admin');
+    Route::post('/roles/{role}/duplicate',         [RoleController::class, 'duplicate'])->middleware('role:super_admin|admin');
+    Route::get('/roles/{role}/users',              [RoleController::class, 'users'])->middleware('role:super_admin|admin');
 
     // ── Assets ─────────────────────────────────────────────────────
     // NOTE: /assets/categories MUST come before /assets/{asset} to avoid being captured as a param

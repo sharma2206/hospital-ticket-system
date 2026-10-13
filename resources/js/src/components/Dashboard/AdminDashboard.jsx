@@ -21,8 +21,9 @@ import {
     Hospital,
     Users,
     ArrowUpRight,
-    ListOrdered,
     Plus,
+    LayoutDashboard,
+    ListOrdered,
 } from "lucide-react";
 import {
     AreaChart,
@@ -42,6 +43,7 @@ import {
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import MetricCard from "../Shared/MetricCard";
+import PageHeader from "../Shared/PageHeader";
 import StatusBadge from "../Common/StatusBadge";
 
 const COLORS = [
@@ -80,24 +82,21 @@ export default function AdminDashboard() {
         : "No response data";
 
     return (
-        <div className="space-y-6">
-            {/* Page Header */}
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title flex items-center gap-2">
-                        <span>IT Operations Overview</span>
-                    </h1>
-                    <p className="page-subtitle">
-                        Real-time telemetry and service metrics for hospital IT operations
-                    </p>
-                </div>
-                <div className="flex items-center gap-2.5">
-                    <Link to="/tickets/create" className="btn btn-primary btn-sm flex items-center gap-1.5 shadow-sm">
+        <div className="page-container">
+            <PageHeader
+                title="IT Operations Overview"
+                subtitle="Real-time telemetry and service metrics for hospital IT operations"
+                icon={LayoutDashboard}
+                actions={
+                    <Link
+                        to="/tickets/create"
+                        className="btn btn-primary btn-sm inline-flex items-center gap-1.5 shadow-sm"
+                    >
                         <Plus size={16} />
                         <span>Raise Ticket</span>
                     </Link>
-                </div>
-            </div>
+                }
+            />
 
             {/* KPI Metrics Grid */}
             <div

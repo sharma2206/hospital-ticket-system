@@ -1,8 +1,13 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
-import { BookOpenText, Plus, Search } from "lucide-react";
+import { BookOpenText, Plus, Eye } from "lucide-react";
 import api from "../../services/api";
+import PageHeader from "../../components/Shared/PageHeader";
+import SearchFilterBar from "../../components/Shared/SearchFilterBar";
+import Pagination from "../../components/Shared/Pagination";
+import EmptyState from "../../components/Shared/EmptyState";
+import StatusBadge from "../../components/Common/StatusBadge";
 
 export default function KnowledgeBasePage() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -33,83 +38,63 @@ export default function KnowledgeBasePage() {
         setSearchParams(params);
     };
 
-    const doSearch = (event) => {
-        event.preventDefault();
+    const doSearch = () => {
         setFilter("search", search);
     };
 
+    const resetFilters = () => {
+        setSearchParams({});
+        setSearch("");
+    };
+
     return (
-        <div style={{ display: "grid", gap: "1rem" }}>
-            <div className="page-header">
-                <div>
-                    <div className="page-title" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                        <BookOpenText size={22} className="text-cyan-600" /> Knowledge Base
-                    </div>
-                    <div className="page-subtitle">
-                        {pagination.total ?? 0} articles
-                    </div>
-                </div>
-                <Link to="/knowledge/create" className="btn btn-primary">
-                    <Plus size={16} /> New Article
-                </Link>
-            </div>
+        <div className="page-container">
+            <PageHeader
+                title="Knowledge Base"
+                subtitle={`${pagination.total ?? 0} published guides, SOPs, and troubleshooting resolutions`}
+                icon={BookOpenText}
+                actions={
+                    <Link
+                        to="/knowledge/create"
+                        className="btn btn-primary btn-sm inline-flex items-center gap-1.5 shadow-sm"
+                    >
+                        <Plus size={16} />
+                        <span>New Article</span>
+                    </Link>
+                }
+            />
 
-            <div className="card" style={{ padding: "1rem" }}>
-                <div
-                    style={{
-                        display: "flex",
-                        gap: ".75rem",
-                        flexWrap: "wrap",
-                        alignItems: "flex-end",
-                    }}
+            <SearchFilterBar
+                search={search}
+                onSearchChange={setSearch}
+                onSearchSubmit={doSearch}
+                searchPlaceholder="Search article title or solution summary..."
+                onReset={filters.search || filters.status ? resetFilters : null}
+            >
+                <select
+                    className="form-control"
+                    value={filters.status}
+                    onChange={(e) => setFilter("status", e.target.value)}
+                    style={{ maxWidth: "170px" }}
                 >
-                    <form
-                        onSubmit={doSearch}
-                        style={{
-                            display: "flex",
-                            gap: ".5rem",
-                            flex: 1,
-                            minWidth: "240px",
-                        }}
-                    >
-                        <input
-                            className="form-input"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search article title or summary"
-                        />
-                        <button
-                            type="submit"
-                            className="btn btn-secondary btn-sm"
-                        >
-                            <Search size={15} />
-                        </button>
-                    </form>
-
-                    <select
-                        className="form-select"
-                        value={filters.status}
-                        onChange={(e) => setFilter("status", e.target.value)}
-                        style={{ maxWidth: "170px" }}
-                    >
-                        <option value="">All statuses</option>
-                        <option value="draft">Draft</option>
-                        <option value="published">Published</option>
-                    </select>
-                </div>
-            </div>
+                    <option value="">All statuses</option>
+                    <option value="draft">Draft</option>
+                    <option value="published">Published</option>
+                </select>
+            </SearchFilterBar>
 
             <div className="card">
                 <div className="table-wrapper">
                     <table className="table">
                         <thead>
                             <tr>
-                                <th>Article</th>
+                                <th>Article Title</th>
                                 <th>Status</th>
                                 <th>Category</th>
                                 <th>Views</th>
                                 <th>Author</th>
                                 <th>Updated</th>
+                                <th className="text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -118,7 +103,7 @@ export default function KnowledgeBasePage() {
                                     .fill(0)
                                     .map((_, index) => (
                                         <tr key={index}>
-                                            {Array(6)
+                                            {Array(7)
                                                 .fill(0)
                                                 .map((__, cell) => (
                                                     <td key={cell}>
@@ -130,80 +115,85 @@ export default function KnowledgeBasePage() {
                             ) : articles.length ? (
                                 articles.map((article) => (
                                     <tr key={article.id}>
-                                        <td>
-                                            <div style={{ fontWeight: 700 }}>
-                                                {article.title}
-                                            </div>
-                                            <div
-                                                style={{
-                                                    fontSize: ".75rem",
-                                                    color: "var(--text-muted)",
-                                                }}
+                                        <td className="max-w-md">
+                                            <Link
+                                                to={`/knowledge/${article.id}`}
+                                                className="font-semibold text-slate-800 dark:text-slate-100 hover:text-blue-600 transition-colors block"
                                             >
+                                                {article.title}
+                                            </Link>
+                                            <div className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
                                                 {article.solution_summary ||
                                                     "No summary provided"}
                                             </div>
                                         </td>
                                         <td>
-                                            <span
-                                                className="badge"
-                                                style={{
-                                                    background:
-                                                        article.status ===
-                                                        "published"
-                                                            ? "#dcfce7"
-                                                            : "#fef3c7",
-                                                    color:
-                                                        article.status ===
-                                                        "published"
-                                                            ? "#166534"
-                                                            : "#92400e",
-                                                }}
-                                            >
-                                                {article.status || "draft"}
+                                            <StatusBadge
+                                                value={article.status || "draft"}
+                                                label={article.status || "draft"}
+                                                size="sm"
+                                            />
+                                        </td>
+                                        <td>
+                                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                                {article.category?.name || "General"}
                                             </span>
                                         </td>
-                                        <td>
-                                            {article.category?.name ||
-                                                "General"}
+                                        <td className="text-xs text-slate-600 dark:text-slate-400 font-mono">
+                                            {article.views ?? 0}
                                         </td>
-                                        <td>{article.views ?? 0}</td>
-                                        <td>
+                                        <td className="text-xs text-slate-700 dark:text-slate-300">
                                             {article.author
                                                 ? `${article.author.first_name} ${article.author.last_name}`
                                                 : "—"}
                                         </td>
-                                        <td
-                                            style={{
-                                                color: "var(--text-muted)",
-                                                fontSize: ".82rem",
-                                            }}
-                                        >
+                                        <td className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
                                             {article.updated_at
-                                                ? new Date(
-                                                      article.updated_at,
-                                                  ).toLocaleDateString()
+                                                ? new Date(article.updated_at).toLocaleDateString()
                                                 : "—"}
+                                        </td>
+                                        <td className="text-right">
+                                            <Link
+                                                to={`/knowledge/${article.id}`}
+                                                className="btn btn-secondary btn-xs inline-flex items-center gap-1"
+                                            >
+                                                <Eye size={12} />
+                                                <span>Read</span>
+                                            </Link>
                                         </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td
-                                        colSpan={6}
-                                        style={{
-                                            textAlign: "center",
-                                            padding: "2rem",
-                                            color: "var(--text-muted)",
-                                        }}
-                                    >
-                                        No knowledge articles found.
+                                    <td colSpan={7}>
+                                        <EmptyState
+                                            icon={BookOpenText}
+                                            title="No knowledge articles found"
+                                            description="No knowledge base documentation matches your search criteria."
+                                            action={
+                                                <Link to="/knowledge/create" className="btn btn-primary btn-sm">
+                                                    <Plus size={14} /> Create First Article
+                                                </Link>
+                                            }
+                                        />
                                     </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
+
+                {pagination && pagination.last_page > 1 && (
+                    <Pagination
+                        currentPage={filters.page}
+                        lastPage={pagination.last_page}
+                        total={pagination.total}
+                        from={pagination.from}
+                        to={pagination.to}
+                        itemLabel="articles"
+                        onPageChange={(p) => setFilter("page", String(p))}
+                    />
+                )}
             </div>
         </div>
     );

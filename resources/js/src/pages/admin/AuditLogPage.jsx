@@ -1,8 +1,13 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, History } from "lucide-react";
+import { History } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import api from "../../services/api";
+import PageHeader from "../../components/Shared/PageHeader";
+import SearchFilterBar from "../../components/Shared/SearchFilterBar";
+import Pagination from "../../components/Shared/Pagination";
+import EmptyState from "../../components/Shared/EmptyState";
+import StatusBadge from "../../components/Common/StatusBadge";
 
 export default function AuditLogPage() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -43,87 +48,61 @@ export default function AuditLogPage() {
         setSearchParams(params);
     };
 
-    const doSearch = (event) => {
-        event.preventDefault();
+    const doSearch = () => {
         setFilter("search", search);
     };
 
+    const resetFilters = () => {
+        setSearchParams({});
+        setSearch("");
+    };
+
     const logs = data?.data || [];
+    const pagination = data?.pagination || {};
 
     return (
-        <div style={{ display: "grid", gap: "1rem" }}>
-            <div className="page-header">
-                <div>
-                    <div className="page-title" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                        <History size={22} className="text-cyan-600" /> Audit Logs
-                    </div>
-                    <div className="page-subtitle">
-                        System activity and operational history
-                    </div>
-                </div>
-            </div>
+        <div className="page-container">
+            <PageHeader
+                title="Audit Logs"
+                subtitle="System activity and operational security history"
+                icon={History}
+            />
 
-            <div className="card" style={{ padding: "1rem" }}>
-                <div
-                    style={{
-                        display: "flex",
-                        gap: ".75rem",
-                        flexWrap: "wrap",
-                        alignItems: "flex-end",
-                    }}
+            <SearchFilterBar
+                search={search}
+                onSearchChange={setSearch}
+                onSearchSubmit={doSearch}
+                searchPlaceholder="Search description or IP..."
+                onReset={filters.search || filters.action || filters.module ? resetFilters : null}
+            >
+                <select
+                    className="form-control"
+                    value={filters.action}
+                    onChange={(e) => setFilter("action", e.target.value)}
+                    style={{ maxWidth: "180px" }}
                 >
-                    <form
-                        onSubmit={doSearch}
-                        style={{
-                            display: "flex",
-                            gap: ".5rem",
-                            flex: 1,
-                            minWidth: "220px",
-                        }}
-                    >
-                        <input
-                            className="form-input"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search description or IP"
-                        />
-                        <button
-                            type="submit"
-                            className="btn btn-secondary btn-sm"
-                        >
-                            <Search size={15} />
-                        </button>
-                    </form>
+                    <option value="">All actions</option>
+                    {actions.map((action) => (
+                        <option key={action} value={action}>
+                            {action}
+                        </option>
+                    ))}
+                </select>
 
-                    <select
-                        className="form-select"
-                        value={filters.action}
-                        onChange={(e) => setFilter("action", e.target.value)}
-                        style={{ maxWidth: "180px" }}
-                    >
-                        <option value="">All actions</option>
-                        {actions.map((action) => (
-                            <option key={action} value={action}>
-                                {action}
-                            </option>
-                        ))}
-                    </select>
-
-                    <select
-                        className="form-select"
-                        value={filters.module}
-                        onChange={(e) => setFilter("module", e.target.value)}
-                        style={{ maxWidth: "180px" }}
-                    >
-                        <option value="">All modules</option>
-                        {modules.map((module) => (
-                            <option key={module} value={module}>
-                                {module}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-            </div>
+                <select
+                    className="form-control"
+                    value={filters.module}
+                    onChange={(e) => setFilter("module", e.target.value)}
+                    style={{ maxWidth: "180px" }}
+                >
+                    <option value="">All modules</option>
+                    {modules.map((module) => (
+                        <option key={module} value={module}>
+                            {module}
+                        </option>
+                    ))}
+                </select>
+            </SearchFilterBar>
 
             <div className="card">
                 <div className="table-wrapper">
@@ -157,62 +136,59 @@ export default function AuditLogPage() {
                                 logs.map((log) => (
                                     <tr key={log.id}>
                                         <td>
-                                            <span
-                                                className="badge"
-                                                style={{
-                                                    background: "#dbeafe",
-                                                    color: "#1d4ed8",
-                                                }}
-                                            >
-                                                {log.action || "—"}
-                                            </span>
+                                            <StatusBadge
+                                                value={log.action}
+                                                label={log.action || "—"}
+                                                size="sm"
+                                            />
                                         </td>
-                                        <td>{log.module || "—"}</td>
+                                        <td className="font-semibold text-slate-800 dark:text-slate-200">
+                                            {log.module || "—"}
+                                        </td>
                                         <td>
                                             {log.user
                                                 ? `${log.user.first_name} ${log.user.last_name}`
                                                 : "System"}
                                         </td>
-                                        <td>{log.description || "—"}</td>
-                                        <td
-                                            style={{
-                                                fontFamily: "monospace",
-                                                fontSize: ".8rem",
-                                            }}
-                                        >
+                                        <td className="text-slate-700 dark:text-slate-300">
+                                            {log.description || "—"}
+                                        </td>
+                                        <td className="font-mono text-xs text-slate-500 dark:text-slate-400">
                                             {log.ip_address || "—"}
                                         </td>
-                                        <td
-                                            style={{
-                                                color: "var(--text-muted)",
-                                                fontSize: ".8rem",
-                                            }}
-                                        >
+                                        <td className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
                                             {log.created_at
-                                                ? new Date(
-                                                      log.created_at,
-                                                  ).toLocaleString()
+                                                ? new Date(log.created_at).toLocaleString()
                                                 : "—"}
                                         </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td
-                                        colSpan={6}
-                                        style={{
-                                            textAlign: "center",
-                                            padding: "2rem",
-                                            color: "var(--text-muted)",
-                                        }}
-                                    >
-                                        No audit logs found.
+                                    <td colSpan={6}>
+                                        <EmptyState
+                                            icon={History}
+                                            title="No audit logs found"
+                                            description="No activity matches the current search and filter criteria."
+                                        />
                                     </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
+
+                {pagination && pagination.last_page > 1 && (
+                    <Pagination
+                        currentPage={filters.page}
+                        lastPage={pagination.last_page}
+                        total={pagination.total}
+                        from={pagination.from}
+                        to={pagination.to}
+                        itemLabel="logs"
+                        onPageChange={(page) => setFilter("page", page)}
+                    />
+                )}
             </div>
         </div>
     );

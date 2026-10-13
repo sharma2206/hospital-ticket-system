@@ -28,6 +28,8 @@ import toast from "react-hot-toast";
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import ConfirmDialog from "../../components/Shared/ConfirmDialog";
+import PageHeader from "../../components/Shared/PageHeader";
+import MetricCard from "../../components/Shared/MetricCard";
 
 const PRESET_COLORS = [
     "#3b82f6", // Blue
@@ -414,33 +416,18 @@ export default function CategoriesPage() {
     };
 
     return (
-        <div className="space-y-6">
-            {/* Page Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                        <span>Settings</span>
-                        <span>/</span>
-                        <span>Ticket Configuration</span>
-                        <span>/</span>
-                        <span className="text-cyan-600 dark:text-cyan-400">Categories</span>
-                    </div>
-                    <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2.5">
-                        <FolderTree className="text-cyan-600 dark:text-cyan-400" size={26} />
-                        <span>Categories & Subcategories</span>
-                    </h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                        Database-driven IT ticket taxonomy. Manage root issue categories, subcategories, SLAs, and routing.
-                    </p>
-                </div>
-
-                <div className="flex items-center gap-2.5">
-                    {activeTab === "categories" ? (
+        <div className="page-container">
+            <PageHeader
+                title="Categories & Subcategories"
+                subtitle="Database-driven IT ticket taxonomy. Manage root issue categories, subcategories, SLAs, and routing"
+                icon={FolderTree}
+                actions={
+                    activeTab === "categories" ? (
                         <button
                             onClick={openAddCategoryModal}
                             disabled={!isSuperAdmin}
                             title={!isSuperAdmin ? "Super Admin permissions required" : "Create new category"}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white rounded-lg text-sm font-semibold transition shadow-sm"
+                            className="btn btn-primary btn-sm inline-flex items-center gap-1.5 shadow-sm"
                         >
                             <Plus size={16} />
                             <span>New Category</span>
@@ -450,14 +437,14 @@ export default function CategoriesPage() {
                             onClick={() => openAddSubCategoryModal()}
                             disabled={!isSuperAdmin}
                             title={!isSuperAdmin ? "Super Admin permissions required" : "Create new subcategory"}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm font-semibold transition shadow-sm"
+                            className="btn btn-primary btn-sm inline-flex items-center gap-1.5 shadow-sm"
                         >
                             <Plus size={16} />
                             <span>New Subcategory</span>
                         </button>
-                    )}
-                </div>
-            </div>
+                    )
+                }
+            />
 
             {/* Permission Banner if not Super Admin */}
             {!isSuperAdmin && (
@@ -470,54 +457,40 @@ export default function CategoriesPage() {
             )}
 
             {/* Metric KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 flex items-center justify-center shrink-0">
-                        <Tags size={20} />
-                    </div>
-                    <div>
-                        <div className="text-xs text-slate-400 font-medium">Total Categories</div>
-                        <div className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                            {totalCategories}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center shrink-0">
-                        <CheckCircle2 size={20} />
-                    </div>
-                    <div>
-                        <div className="text-xs text-slate-400 font-medium">Active Categories</div>
-                        <div className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                            {activeCategoriesCount}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center shrink-0">
-                        <Layers size={20} />
-                    </div>
-                    <div>
-                        <div className="text-xs text-slate-400 font-medium">Total Subcategories</div>
-                        <div className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                            {totalSubCategories}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 flex items-center justify-center shrink-0">
-                        <Tag size={20} />
-                    </div>
-                    <div>
-                        <div className="text-xs text-slate-400 font-medium">Active Subcategories</div>
-                        <div className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                            {activeSubCategoriesCount}
-                        </div>
-                    </div>
-                </div>
+            <div
+                className="grid gap-3.5"
+                style={{
+                    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                }}
+            >
+                <MetricCard
+                    title="Total Categories"
+                    value={totalCategories}
+                    icon={Tags}
+                    color="#2563eb"
+                    sub="Root taxonomies"
+                />
+                <MetricCard
+                    title="Active Categories"
+                    value={activeCategoriesCount}
+                    icon={CheckCircle2}
+                    color="#10b981"
+                    sub="Enabled for ticketing"
+                />
+                <MetricCard
+                    title="Total Subcategories"
+                    value={totalSubCategories}
+                    icon={Layers}
+                    color="#7c3aed"
+                    sub="Granular classifications"
+                />
+                <MetricCard
+                    title="Active Subcategories"
+                    value={activeSubCategoriesCount}
+                    icon={Tag}
+                    color="#0284c7"
+                    sub="Active sub-options"
+                />
             </div>
 
             {/* Navigation Tabs & Search/Filter Controls */}

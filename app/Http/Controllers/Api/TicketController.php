@@ -27,15 +27,19 @@ class TicketController extends Controller
         $user = Auth::user();
         $query = Ticket::internal();
 
-        // ── Role-based visibility ─────────────────────────────
-        $staffRoles = ['super_admin', 'admin', 'it_manager', 'team_lead', 'technician', 'it_staff'];
-        $isStaff = $user->hasAnyRole($staffRoles);
+        // ── Role-based visibility: staff can see all tickets ──────────
+        // Primary: permission-based check (dynamic, configurable via UI)
+        // Fallback: role check for backward compatibility
+        $isStaff = $user->hasPermissionTo('manage-tickets', 'api')
+            || $user->hasPermissionTo('view-tickets', 'api')
+            || $user->hasAnyRole(['super_admin', 'admin', 'it_manager', 'team_lead', 'technician', 'it_staff']);
 
         if (!$isStaff) {
             $query->where('created_by', $user->id);
         } elseif ($request->filled('my_tickets')) {
             $query->where('assigned_to', $user->id);
         }
+
 
         // ── Filters ───────────────────────────────────────────
         if ($request->filled('status_id')) {

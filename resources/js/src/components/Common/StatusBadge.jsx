@@ -14,6 +14,23 @@ const STATUS_VARIANTS = {
     high: { bg: 'bg-orange-50 dark:bg-orange-950/40', text: 'text-orange-700 dark:text-orange-400', dot: 'bg-orange-500', border: 'border-orange-200 dark:border-orange-800/60' },
     critical: { bg: 'bg-rose-50 dark:bg-rose-950/40', text: 'text-rose-700 dark:text-rose-400', dot: 'bg-rose-600', border: 'border-rose-200 dark:border-rose-800/60' },
     
+    // SLA Statuses
+    sla_breached: { bg: 'bg-rose-50 dark:bg-rose-950/40', text: 'text-rose-700 dark:text-rose-400', dot: 'bg-rose-600', border: 'border-rose-200 dark:border-rose-800/60' },
+    breached: { bg: 'bg-rose-50 dark:bg-rose-950/40', text: 'text-rose-700 dark:text-rose-400', dot: 'bg-rose-600', border: 'border-rose-200 dark:border-rose-800/60' },
+    within_sla: { bg: 'bg-emerald-50 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500', border: 'border-emerald-200 dark:border-emerald-800/60' },
+    sla_warning: { bg: 'bg-amber-50 dark:bg-amber-950/40', text: 'text-amber-700 dark:text-amber-400', dot: 'bg-amber-500', border: 'border-amber-200 dark:border-amber-800/60' },
+
+    // Roles
+    super_admin: { bg: 'bg-amber-50 dark:bg-amber-950/40', text: 'text-amber-800 dark:text-amber-300', dot: 'bg-amber-500', border: 'border-amber-300 dark:border-amber-800/70' },
+    admin: { bg: 'bg-pink-50 dark:bg-pink-950/40', text: 'text-pink-800 dark:text-pink-300', dot: 'bg-pink-500', border: 'border-pink-300 dark:border-pink-800/70' },
+    it_manager: { bg: 'bg-purple-50 dark:bg-purple-950/40', text: 'text-purple-800 dark:text-purple-300', dot: 'bg-purple-500', border: 'border-purple-300 dark:border-purple-800/70' },
+    team_lead: { bg: 'bg-sky-50 dark:bg-sky-950/40', text: 'text-sky-800 dark:text-sky-300', dot: 'bg-sky-500', border: 'border-sky-300 dark:border-sky-800/70' },
+    technician: { bg: 'bg-emerald-50 dark:bg-emerald-950/40', text: 'text-emerald-800 dark:text-emerald-300', dot: 'bg-emerald-500', border: 'border-emerald-300 dark:border-emerald-800/70' },
+    dept_coordinator: { bg: 'bg-orange-50 dark:bg-orange-950/40', text: 'text-orange-800 dark:text-orange-300', dot: 'bg-orange-500', border: 'border-orange-300 dark:border-orange-800/70' },
+    employee: { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-700 dark:text-slate-300', dot: 'bg-slate-400', border: 'border-slate-200 dark:border-slate-700' },
+    vendor: { bg: 'bg-green-50 dark:bg-green-950/40', text: 'text-green-800 dark:text-green-300', dot: 'bg-green-500', border: 'border-green-300 dark:border-green-800/70' },
+    it_staff: { bg: 'bg-indigo-50 dark:bg-indigo-950/40', text: 'text-indigo-800 dark:text-indigo-300', dot: 'bg-indigo-500', border: 'border-indigo-300 dark:border-indigo-800/70' },
+
     // KareXpert
     raised: { bg: 'bg-sky-50 dark:bg-sky-950/40', text: 'text-sky-700 dark:text-sky-400', dot: 'bg-sky-500', border: 'border-sky-200 dark:border-sky-800/60' },
     acknowledged: { bg: 'bg-teal-50 dark:bg-teal-950/40', text: 'text-teal-700 dark:text-teal-400', dot: 'bg-teal-500', border: 'border-teal-200 dark:border-teal-800/60' },
@@ -21,11 +38,16 @@ const STATUS_VARIANTS = {
     awaiting_deployment: { bg: 'bg-purple-50 dark:bg-purple-950/40', text: 'text-purple-700 dark:text-purple-400', dot: 'bg-purple-500', border: 'border-purple-200 dark:border-purple-800/60' },
     deployed: { bg: 'bg-emerald-50 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500', border: 'border-emerald-200 dark:border-emerald-800/60' },
 
-    // Assets
+    // Assets & General
     active: { bg: 'bg-emerald-50 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500', border: 'border-emerald-200 dark:border-emerald-800/60' },
     inactive: { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-600 dark:text-slate-400', dot: 'bg-slate-400', border: 'border-slate-200 dark:border-slate-700' },
     maintenance: { bg: 'bg-amber-50 dark:bg-amber-950/40', text: 'text-amber-700 dark:text-amber-400', dot: 'bg-amber-500', border: 'border-amber-200 dark:border-amber-800/60' },
     retired: { bg: 'bg-rose-50 dark:bg-rose-950/40', text: 'text-rose-700 dark:text-rose-400', dot: 'bg-rose-500', border: 'border-rose-200 dark:border-rose-800/60' },
+    disposed: { bg: 'bg-slate-200 dark:bg-slate-800', text: 'text-slate-800 dark:text-slate-200', dot: 'bg-slate-600', border: 'border-slate-300 dark:border-slate-600' },
+
+    // Knowledge Base
+    published: { bg: 'bg-emerald-50 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500', border: 'border-emerald-200 dark:border-emerald-800/60' },
+    draft: { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-600 dark:text-slate-400', dot: 'bg-slate-400', border: 'border-slate-200 dark:border-slate-700' },
 };
 
 export default function StatusBadge({

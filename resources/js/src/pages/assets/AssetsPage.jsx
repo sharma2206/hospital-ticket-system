@@ -1,8 +1,13 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
-import { Plus, Search, Laptop } from "lucide-react";
+import { Plus, Laptop, Eye } from "lucide-react";
 import api from "../../services/api";
+import PageHeader from "../../components/Shared/PageHeader";
+import SearchFilterBar from "../../components/Shared/SearchFilterBar";
+import Pagination from "../../components/Shared/Pagination";
+import EmptyState from "../../components/Shared/EmptyState";
+import StatusBadge from "../../components/Common/StatusBadge";
 
 export default function AssetsPage() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -40,96 +45,67 @@ export default function AssetsPage() {
         setSearchParams(params);
     };
 
-    const doSearch = (event) => {
-        event.preventDefault();
+    const doSearch = () => {
         setFilter("search", search);
     };
 
-    const statusColors = {
-        active: "#16a34a",
-        inactive: "#64748b",
-        maintenance: "#f59e0b",
-        retired: "#ef4444",
-        disposed: "#111827",
+    const resetFilters = () => {
+        setSearchParams({});
+        setSearch("");
     };
 
     return (
-        <div style={{ display: "grid", gap: "1rem" }}>
-            <div className="page-header">
-                <div>
-                    <div className="page-title" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                        <Laptop size={22} className="text-cyan-600" /> Asset Inventory
-                    </div>
-                    <div className="page-subtitle">
-                        {pagination.total ?? 0} tracked assets
-                    </div>
-                </div>
-                <Link to="/assets/create" className="btn btn-primary">
-                    <Plus size={16} /> Add Asset
-                </Link>
-            </div>
+        <div className="page-container">
+            <PageHeader
+                title="Asset Inventory"
+                subtitle={`${pagination.total ?? 0} tracked hardware and clinical IT devices`}
+                icon={Laptop}
+                actions={
+                    <Link
+                        to="/assets/create"
+                        className="btn btn-primary btn-sm inline-flex items-center gap-1.5 shadow-sm"
+                    >
+                        <Plus size={16} />
+                        <span>Add Asset</span>
+                    </Link>
+                }
+            />
 
-            <div className="card" style={{ padding: "1rem" }}>
-                <div
-                    style={{
-                        display: "flex",
-                        gap: ".75rem",
-                        flexWrap: "wrap",
-                        alignItems: "flex-end",
-                    }}
+            <SearchFilterBar
+                search={search}
+                onSearchChange={setSearch}
+                onSearchSubmit={doSearch}
+                searchPlaceholder="Search asset name or code..."
+                onReset={filters.search || filters.category || filters.status ? resetFilters : null}
+            >
+                <select
+                    className="form-control"
+                    value={filters.category}
+                    onChange={(e) => setFilter("category", e.target.value)}
+                    style={{ maxWidth: "180px" }}
                 >
-                    <form
-                        onSubmit={doSearch}
-                        style={{
-                            display: "flex",
-                            gap: ".5rem",
-                            flex: 1,
-                            minWidth: "220px",
-                        }}
-                    >
-                        <input
-                            className="form-input"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search asset name or code"
-                        />
-                        <button
-                            type="submit"
-                            className="btn btn-secondary btn-sm"
-                        >
-                            <Search size={15} />
-                        </button>
-                    </form>
+                    <option value="">All categories</option>
+                    {categories.map((category) => (
+                        <option key={category} value={category}>
+                            {category}
+                        </option>
+                    ))}
+                </select>
 
-                    <select
-                        className="form-select"
-                        value={filters.category}
-                        onChange={(e) => setFilter("category", e.target.value)}
-                        style={{ maxWidth: "180px" }}
-                    >
-                        <option value="">All categories</option>
-                        {categories.map((category) => (
-                            <option key={category} value={category}>
-                                {category}
-                            </option>
-                        ))}
-                    </select>
-
-                    <select
-                        className="form-select"
-                        value={filters.status}
-                        onChange={(e) => setFilter("status", e.target.value)}
-                        style={{ maxWidth: "160px" }}
-                    >
-                        <option value="">All status</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="maintenance">Maintenance</option>
-                        <option value="retired">Retired</option>
-                        <option value="disposed">Disposed</option>
-                    </select>
-                </div>
-            </div>
+                <select
+                    className="form-control"
+                    value={filters.status}
+                    onChange={(e) => setFilter("status", e.target.value)}
+                    style={{ maxWidth: "160px" }}
+                >
+                    <option value="">All status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="maintenance">Maintenance</option>
+                    <option value="retired">Retired</option>
+                    <option value="disposed">Disposed</option>
+                </select>
+            </SearchFilterBar>
 
             <div className="card">
                 <div className="table-wrapper">
@@ -140,9 +116,9 @@ export default function AssetsPage() {
                                 <th>Category</th>
                                 <th>Status</th>
                                 <th>Department</th>
-                                <th>Assigned</th>
+                                <th>Assigned To</th>
                                 <th>Location</th>
-                                <th>Action</th>
+                                <th className="text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -164,117 +140,82 @@ export default function AssetsPage() {
                                 assets.map((asset) => (
                                     <tr key={asset.id}>
                                         <td>
-                                            <div style={{ fontWeight: 700 }}>
-                                                {asset.name}
-                                            </div>
-                                            <div
-                                                style={{
-                                                    fontSize: ".76rem",
-                                                    color: "var(--text-muted)",
-                                                }}
+                                            <Link
+                                                to={`/assets/${asset.id}`}
+                                                className="font-semibold text-slate-800 dark:text-slate-100 hover:text-blue-600 transition-colors block"
                                             >
+                                                {asset.name}
+                                            </Link>
+                                            <div className="font-mono text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                                                 {asset.asset_code}
                                             </div>
                                         </td>
-                                        <td>{asset.category || "—"}</td>
                                         <td>
-                                            <span
-                                                className="badge"
-                                                style={{
-                                                    background: `${statusColors[asset.status] || "#e2e8f0"}22`,
-                                                    color:
-                                                        statusColors[
-                                                            asset.status
-                                                        ] || "#475569",
-                                                }}
-                                            >
-                                                {asset.status || "Unknown"}
+                                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                                {asset.category || "—"}
                                             </span>
                                         </td>
-                                        <td>{asset.department?.name || "—"}</td>
                                         <td>
+                                            <StatusBadge
+                                                value={asset.status}
+                                                label={asset.status || "Unknown"}
+                                                size="sm"
+                                            />
+                                        </td>
+                                        <td className="text-xs text-slate-600 dark:text-slate-400">
+                                            {asset.department?.name || "—"}
+                                        </td>
+                                        <td className="text-xs text-slate-700 dark:text-slate-300">
                                             {(asset.assigned_user || asset.assignedUser)
                                                 ? `${(asset.assigned_user || asset.assignedUser).first_name} ${(asset.assigned_user || asset.assignedUser).last_name}`
-                                                : "Unassigned"}
+                                                : <span className="text-slate-400 italic">Unassigned</span>}
                                         </td>
-                                        <td>{asset.location || "—"}</td>
-                                        <td>
+                                        <td className="text-xs text-slate-500 dark:text-slate-400">
+                                            {asset.location || "—"}
+                                        </td>
+                                        <td className="text-right">
                                             <Link
                                                 to={`/assets/${asset.id}`}
-                                                className="btn btn-secondary btn-sm"
+                                                className="btn btn-secondary btn-xs inline-flex items-center gap-1"
                                             >
-                                                View
+                                                <Eye size={12} />
+                                                <span>View</span>
                                             </Link>
                                         </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td
-                                        colSpan={7}
-                                        style={{
-                                            textAlign: "center",
-                                            padding: "2rem",
-                                            color: "var(--text-muted)",
-                                        }}
-                                    >
-                                        No assets found.
+                                    <td colSpan={7}>
+                                        <EmptyState
+                                            icon={Laptop}
+                                            title="No assets found"
+                                            description="No assets match your search or filter settings."
+                                            action={
+                                                <Link to="/assets/create" className="btn btn-primary btn-sm">
+                                                    <Plus size={14} /> Add First Asset
+                                                </Link>
+                                            }
+                                        />
                                     </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
-            </div>
 
-            {/* Pagination */}
-            {pagination.last_page > 1 && (
-                <div className="card">
-                    <div className="pagination">
-                        <button
-                            className="pagination-btn"
-                            disabled={filters.page <= 1}
-                            onClick={() => setFilter("page", String(Number(filters.page) - 1))}
-                        >
-                            &larr;
-                        </button>
-                        {Array.from({ length: pagination.last_page }, (_, i) => i + 1)
-                            .filter(p => {
-                                const current = Number(filters.page);
-                                return p === 1 || p === pagination.last_page || Math.abs(p - current) <= 2;
-                            })
-                            .reduce((acc, p, i, arr) => {
-                                if (i > 0 && p - arr[i - 1] > 1) acc.push('...');
-                                acc.push(p);
-                                return acc;
-                            }, [])
-                            .map((p, i) =>
-                                p === '...' ? (
-                                    <span key={`ellipsis-${i}`} style={{ padding: '0 0.25rem', color: 'var(--text-muted)' }}>…</span>
-                                ) : (
-                                    <button
-                                        key={p}
-                                        className={`pagination-btn ${Number(filters.page) === p ? 'active' : ''}`}
-                                        onClick={() => setFilter("page", String(p))}
-                                    >
-                                        {p}
-                                    </button>
-                                )
-                            )
-                        }
-                        <button
-                            className="pagination-btn"
-                            disabled={Number(filters.page) >= pagination.last_page}
-                            onClick={() => setFilter("page", String(Number(filters.page) + 1))}
-                        >
-                            &rarr;
-                        </button>
-                        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
-                            {pagination.total} total assets
-                        </span>
-                    </div>
-                </div>
-            )}
+                {pagination.last_page > 1 && (
+                    <Pagination
+                        currentPage={filters.page}
+                        lastPage={pagination.last_page}
+                        total={pagination.total}
+                        from={pagination.from}
+                        to={pagination.to}
+                        itemLabel="assets"
+                        onPageChange={(p) => setFilter("page", String(p))}
+                    />
+                )}
+            </div>
         </div>
     );
 }

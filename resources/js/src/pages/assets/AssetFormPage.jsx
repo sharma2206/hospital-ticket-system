@@ -106,8 +106,8 @@ export default function AssetFormPage() {
 
     return (
         <div
-            className="asset-form-wrap"
-            style={{ display: "grid", gap: "1rem" }}
+            className="page-container asset-form-wrap"
+            style={{ display: "grid", gap: "1.25rem" }}
         >
             <div className="page-header">
                 <div>

@@ -72,7 +72,7 @@ export default function KxTicketCreate() {
     };
 
     return (
-        <div className="max-w-3xl mx-auto space-y-6">
+        <div className="page-container max-w-3xl mx-auto space-y-6">
             <div className="page-header">
                 <div>
                     <h1 className="page-title flex items-center gap-2">

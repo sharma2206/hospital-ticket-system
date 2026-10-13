@@ -11,6 +11,7 @@ import {
     X,
 } from "lucide-react";
 import api from "../../services/api";
+import PageHeader from "../../components/Shared/PageHeader";
 
 const emptyForm = {
     name: "",
@@ -124,24 +125,12 @@ export default function DepartmentsPage() {
     };
 
     return (
-        <div style={{ display: "grid", gap: "1.25rem" }}>
-            <div className="page-header">
-                <div>
-                    <div
-                        className="page-title"
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                        }}
-                    >
-                        <Building2 size={20} /> Departments
-                    </div>
-                    <div className="page-subtitle">
-                        Manage hospital departments and assignment rules.
-                    </div>
-                </div>
-            </div>
+        <div className="page-container">
+            <PageHeader
+                title="Departments"
+                subtitle="Manage hospital departments, branch alignments, and leadership"
+                icon={Building2}
+            />
 
             <div className="card" style={{ padding: "1rem" }}>
                 <form

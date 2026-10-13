@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+import PageHeader from "../Shared/PageHeader";
 
 export default function CreateTicket() {
     const navigate = useNavigate();
@@ -102,21 +103,21 @@ export default function CreateTicket() {
     };
 
     return (
-        <div className="ticket-form-wrap max-w-4xl mx-auto space-y-6">
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title flex items-center gap-2">
-                        <span>Raise IT Ticket</span>
-                    </h1>
-                    <p className="page-subtitle">
-                        Describe your issue or technical request for IT resolution
-                    </p>
-                </div>
-                <Link to="/tickets" className="btn btn-secondary btn-sm flex items-center gap-1.5">
-                    <ArrowLeft size={15} />
-                    <span>Back to tickets</span>
-                </Link>
-            </div>
+        <div className="page-container max-w-4xl mx-auto">
+            <PageHeader
+                title="Raise IT Ticket"
+                subtitle="Describe your technical issue or service request for IT department resolution"
+                icon={FileText}
+                actions={
+                    <Link
+                        to="/tickets"
+                        className="btn btn-secondary btn-sm inline-flex items-center gap-1.5"
+                    >
+                        <ArrowLeft size={15} />
+                        <span>Back to tickets</span>
+                    </Link>
+                }
+            />
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                 {/* Issue Details */}

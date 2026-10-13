@@ -11,6 +11,7 @@ import {
     PieChart as PieChartIcon,
     BarChart3,
     Plus,
+    Activity,
 } from "lucide-react";
 import {
     Area,
@@ -29,6 +30,7 @@ import {
 } from "recharts";
 import api from "../../services/api";
 import MetricCard from "../Shared/MetricCard";
+import PageHeader from "../Shared/PageHeader";
 
 const COLORS = [
     "#2563eb",
@@ -67,24 +69,21 @@ export default function KxDashboard() {
     );
 
     return (
-        <div className="space-y-6">
-            {/* Page Header */}
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title flex items-center gap-2">
-                        <span>KareXpert HMS Integration</span>
-                    </h1>
-                    <p className="page-subtitle">
-                        Escalation tracking, patch deployment, and vendor issue resolution
-                    </p>
-                </div>
-                <div className="flex items-center gap-2.5">
-                    <Link to="/karexpert/tickets/create" className="btn btn-primary btn-sm flex items-center gap-1.5 shadow-sm">
+        <div className="page-container">
+            <PageHeader
+                title="KareXpert HMS Integration"
+                subtitle="Vendor escalation tracking, patch deployment stages, and L3 support issues"
+                icon={Activity}
+                actions={
+                    <Link
+                        to="/karexpert/tickets/create"
+                        className="btn btn-primary btn-sm inline-flex items-center gap-1.5 shadow-sm"
+                    >
                         <Plus size={16} />
                         <span>Raise to KX</span>
                     </Link>
-                </div>
-            </div>
+                }
+            />
 
             {/* KPI Metrics Strip */}
             <div

@@ -175,9 +175,15 @@ class UserController extends Controller
 
     public function itStaff(Request $request): JsonResponse
     {
+        // Include users who have IT staff roles OR relevant permissions
         $staffRoles = ['super_admin', 'admin', 'it_manager', 'team_lead', 'technician', 'it_staff'];
-        $users = User::role($staffRoles)
-            ->where('is_active', true)
+        $users = User::where('is_active', true)
+            ->where(function ($q) use ($staffRoles) {
+                $q->role($staffRoles)
+                  ->orWhereHas('permissions', function ($pq) {
+                      $pq->whereIn('name', ['manage-tickets', 'assign-ticket', 'reassign-ticket']);
+                  });
+            })
             ->get(['id', 'first_name', 'last_name', 'email', 'designation']);
 
         return response()->json(['data' => $users]);

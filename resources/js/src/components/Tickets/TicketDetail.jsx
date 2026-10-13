@@ -255,7 +255,7 @@ export default function TicketDetail() {
     const isClosedOrResolved = ["RESOLVED", "CLOSED"].includes(data.status?.code);
 
     return (
-        <div className="space-y-6">
+        <div className="page-container">
             {/* Header */}
             <div className="page-header">
                 <div className="space-y-1">

@@ -12,6 +12,9 @@ import {
 } from "lucide-react";
 import api from "../../services/api";
 import StatusBadge from "../Common/StatusBadge";
+import PageHeader from "../Shared/PageHeader";
+import Pagination from "../Shared/Pagination";
+import EmptyState from "../Shared/EmptyState";
 
 export default function KxTicketList() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -67,21 +70,21 @@ export default function KxTicketList() {
     const pagination = data?.pagination || {};
 
     return (
-        <div className="space-y-5">
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title flex items-center gap-2">
-                        <span>KareXpert HMS Tickets</span>
-                    </h1>
-                    <p className="page-subtitle">
-                        {pagination.total ?? 0} tickets tracked in KareXpert vendor integration
-                    </p>
-                </div>
-                <Link to="/karexpert/tickets/create" className="btn btn-primary btn-sm flex items-center gap-1.5 shadow-sm">
-                    <Plus size={16} />
-                    <span>Raise to KX</span>
-                </Link>
-            </div>
+        <div className="page-container">
+            <PageHeader
+                title="KareXpert HMS Tickets"
+                subtitle={`${pagination.total ?? 0} tickets tracked in KareXpert vendor integration`}
+                icon={Layers}
+                actions={
+                    <Link
+                        to="/karexpert/tickets/create"
+                        className="btn btn-primary btn-sm inline-flex items-center gap-1.5 shadow-sm"
+                    >
+                        <Plus size={16} />
+                        <span>Raise to KX</span>
+                    </Link>
+                }
+            />
 
             {/* Filter Toolbar */}
             <div className="card p-3.5">
@@ -232,18 +235,18 @@ export default function KxTicketList() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td
-                                        colSpan={8}
-                                        className="text-center py-12 text-slate-400"
-                                    >
-                                        <Layers size={36} className="mx-auto mb-2 text-slate-300 dark:text-slate-600" />
-                                        <p className="font-medium text-slate-600 dark:text-slate-300">No KareXpert tickets found</p>
-                                        <p className="text-xs text-slate-400 mt-0.5">
-                                            Try adjusting filters or{" "}
-                                            <Link to="/karexpert/tickets/create" className="text-purple-600 hover:underline">
-                                                raise a ticket to KareXpert
-                                            </Link>.
-                                        </p>
+                                    <td colSpan={8}>
+                                        <EmptyState
+                                            icon={Layers}
+                                            title="No KareXpert tickets found"
+                                            description="Try adjusting filters or raise a new ticket to KareXpert."
+                                            action={
+                                                <Link to="/karexpert/tickets/create" className="btn btn-primary btn-sm inline-flex items-center gap-1.5">
+                                                    <Plus size={15} />
+                                                    <span>Raise to KareXpert</span>
+                                                </Link>
+                                            }
+                                        />
                                     </td>
                                 </tr>
                             )}
@@ -251,46 +254,16 @@ export default function KxTicketList() {
                     </table>
                 </div>
 
-                {/* Pagination */}
                 {pagination.last_page > 1 && (
-                    <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-slate-800 text-xs">
-                        <span className="text-slate-500 dark:text-slate-400">
-                            Showing {pagination.from}–{pagination.to} of {pagination.total} tickets
-                        </span>
-                        <div className="flex items-center gap-1">
-                            <button
-                                type="button"
-                                className="btn btn-secondary btn-xs px-2"
-                                disabled={+filters.page <= 1}
-                                onClick={() => setFilter("page", +filters.page - 1)}
-                            >
-                                <ChevronLeft size={14} />
-                            </button>
-                            {Array.from(
-                                { length: Math.min(pagination.last_page, 7) },
-                                (_, i) => i + 1
-                            ).map((p) => (
-                                <button
-                                    key={p}
-                                    type="button"
-                                    className={`btn btn-xs min-w-7 ${
-                                        +filters.page === p ? "btn-primary" : "btn-secondary"
-                                    }`}
-                                    onClick={() => setFilter("page", p)}
-                                >
-                                    {p}
-                                </button>
-                            ))}
-                            <button
-                                type="button"
-                                className="btn btn-secondary btn-xs px-2"
-                                disabled={+filters.page >= pagination.last_page}
-                                onClick={() => setFilter("page", +filters.page + 1)}
-                            >
-                                <ChevronRight size={14} />
-                            </button>
-                        </div>
-                    </div>
+                    <Pagination
+                        currentPage={filters.page}
+                        lastPage={pagination.last_page}
+                        total={pagination.total}
+                        from={pagination.from}
+                        to={pagination.to}
+                        itemLabel="tickets"
+                        onPageChange={(p) => setFilter("page", p)}
+                    />
                 )}
             </div>
         </div>

@@ -27,6 +27,9 @@ import {
 } from "recharts";
 import api from "../../services/api";
 
+import PageHeader from "../../components/Shared/PageHeader";
+import MetricCard from "../../components/Shared/MetricCard";
+
 const COLORS = ["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#a855f7", "#0284c7"];
 
 const periodOptions = [
@@ -35,37 +38,15 @@ const periodOptions = [
     { label: "Last 90 days", days: 90 },
 ];
 
-function StatBox({ label, value, sub, color }) {
+function StatBox({ label, value, sub, color, icon }) {
     return (
-        <div
-            style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border)",
-                borderRadius: "10px",
-                padding: "1rem",
-                display: "grid",
-                gap: "0.3rem",
-            }}
-        >
-            <div
-                style={{
-                    fontSize: "0.7rem",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                    color: "var(--text-muted)",
-                }}
-            >
-                {label}
-            </div>
-            <div style={{ fontSize: "1.6rem", fontWeight: 800, color: color || "var(--text)" }}>
-                {value ?? "—"}
-            </div>
-            {sub && (
-                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                    {sub}
-                </div>
-            )}
-        </div>
+        <MetricCard
+            title={label}
+            value={value}
+            sub={sub}
+            color={color || "#2563eb"}
+            icon={icon}
+        />
     );
 }
 
@@ -159,46 +140,36 @@ export default function ReportsPage() {
     const asset = assets.data;
 
     return (
-        <div style={{ display: "grid", gap: "1.25rem" }}>
-            {/* Header */}
-            <div className="page-header">
-                <div>
-                    <div
-                        className="page-title"
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                        }}
-                    >
-                        <BarChart3 size={20} /> Reports & Analytics
+        <div className="page-container">
+            <PageHeader
+                title="Reports & Analytics"
+                subtitle="Operational metrics, technician SLAs, and performance insights"
+                icon={BarChart3}
+                actions={
+                    <div className="flex items-center gap-2">
+                        <select
+                            className="form-control"
+                            style={{ maxWidth: "160px" }}
+                            value={days}
+                            onChange={(e) => setDays(Number(e.target.value))}
+                        >
+                            {periodOptions.map((o) => (
+                                <option key={o.days} value={o.days}>
+                                    {o.label}
+                                </option>
+                            ))}
+                        </select>
+                        <button
+                            type="button"
+                            className="btn btn-secondary btn-sm inline-flex items-center gap-1.5"
+                            onClick={refetchAll}
+                        >
+                            <RefreshCw size={14} />
+                            <span>Refresh</span>
+                        </button>
                     </div>
-                    <div className="page-subtitle">
-                        Operational metrics and performance insights
-                    </div>
-                </div>
-                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-                    <select
-                        className="form-select"
-                        style={{ maxWidth: "160px" }}
-                        value={days}
-                        onChange={(e) => setDays(Number(e.target.value))}
-                    >
-                        {periodOptions.map((o) => (
-                            <option key={o.days} value={o.days}>
-                                {o.label}
-                            </option>
-                        ))}
-                    </select>
-                    <button
-                        type="button"
-                        className="btn btn-secondary"
-                        onClick={refetchAll}
-                    >
-                        <RefreshCw size={14} /> Refresh
-                    </button>
-                </div>
-            </div>
+                }
+            />
 
             {/* Ticket Overview */}
             <SectionCard

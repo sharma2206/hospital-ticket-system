@@ -1511,6 +1511,53 @@ svg {
     background: #d97706;
 }
 
+.btn-success {
+    background: #10b981;
+    border-color: #059669;
+    color: #ffffff;
+}
+
+.btn-success:hover {
+    background: #059669;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+.btn-outline:hover {
+    background: var(--secondary-soft);
+    border-color: var(--text-muted);
+}
+
+.btn-ghost {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+}
+
+.btn-ghost:hover {
+    background: var(--secondary-soft);
+    color: var(--text);
+}
+
+.btn-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+}
+
+.btn-icon.btn-sm {
+    width: 1.85rem;
+    height: 1.85rem;
+}
+
 .sidebar-icon-btn {
     display: inline-flex;
     align-items: center;
@@ -1529,4 +1576,202 @@ svg {
     background: var(--secondary-soft);
     color: var(--text);
     border-color: var(--border);
+}
+
+/* ── Standardized Page Structure ─────────────────────────────────────── */
+.page-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    width: 100%;
+    min-width: 0;
+}
+
+.page-header-title-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.page-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
+}
+
+.page-title-icon {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.65rem;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(37, 99, 235, 0.05));
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
+.page-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+/* ── Standardized Filter Toolbar ─────────────────────────────────────── */
+.filter-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.85rem 1.1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-soft);
+}
+
+.filter-search-form {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 220px;
+}
+
+.filter-selects-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* ── Standardized Empty State ────────────────────────────────────────── */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    text-align: center;
+    width: 100%;
+}
+
+.empty-state-icon {
+    display: grid;
+    place-items: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 1rem;
+    background: var(--secondary-soft);
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+
+.empty-state-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 0.35rem 0;
+}
+
+.empty-state-desc {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    max-width: 28rem;
+    margin: 0 0 1.25rem 0;
+    line-height: 1.5;
+}
+
+/* ── Standardized Pagination ─────────────────────────────────────────── */
+.pagination-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1.1rem;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.pagination-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.pagination-btn {
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text);
+    transition: all 0.15s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: var(--secondary-soft);
+    border-color: var(--text-muted);
+}
+
+.pagination-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #ffffff;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ── Dark Theme Overrides for New Components ─────────────────────────── */
+[data-theme="dark"] .page-title-icon {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--primary);
+}
+
+[data-theme="dark"] .empty-state-icon {
+    background: #334155;
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .btn-outline {
+    border-color: var(--border);
+    color: var(--text);
+}
+
+[data-theme="dark"] .btn-outline:hover {
+    background: #334155;
+}
+
+[data-theme="dark"] .btn-ghost:hover {
+    background: #334155;
+}
+
+[data-theme="dark"] .pagination-btn {
+    background: #1e293b;
+    border-color: #334155;
+    color: var(--text);
+}
+
+[data-theme="dark"] .pagination-btn:hover:not(:disabled) {
+    background: #334155;
+}
+
+[data-theme="dark"] .pagination-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #ffffff;
 }

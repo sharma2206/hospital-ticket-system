@@ -11,6 +11,7 @@ import {
     X,
 } from "lucide-react";
 import api from "../../services/api";
+import PageHeader from "../../components/Shared/PageHeader";
 
 const emptyForm = {
     name: "",
@@ -112,24 +113,12 @@ export default function BranchesPage() {
     };
 
     return (
-        <div style={{ display: "grid", gap: "1.25rem" }}>
-            <div className="page-header">
-                <div>
-                    <div
-                        className="page-title"
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                        }}
-                    >
-                        <Building size={20} /> Branches
-                    </div>
-                    <div className="page-subtitle">
-                        Overview of hospital branches and facility leadership.
-                    </div>
-                </div>
-            </div>
+        <div className="page-container">
+            <PageHeader
+                title="Branches"
+                subtitle="Overview of hospital campuses, physical facilities, and location contacts"
+                icon={Building}
+            />
 
             <div className="card" style={{ padding: "1rem" }}>
                 <form

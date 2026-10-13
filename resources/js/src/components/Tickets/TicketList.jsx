@@ -15,22 +15,23 @@ import {
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import StatusBadge from "../Common/StatusBadge";
+import PageHeader from "../Shared/PageHeader";
+import Pagination from "../Shared/Pagination";
+import EmptyState from "../Shared/EmptyState";
 
 function SLABadge({ status }) {
     if (!status) return <span className="text-xs text-slate-400">—</span>;
-    
-    const colorMap = {
-        green: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60",
-        yellow: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800/60",
-        red: "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border-rose-200 dark:border-rose-800/60",
+    const variantMap = {
+        green: "within_sla",
+        yellow: "sla_warning",
+        red: "sla_breached",
     };
-
-    const variant = colorMap[status.color] || "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200";
-
     return (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${variant}`}>
-            {status.label}
-        </span>
+        <StatusBadge
+            value={variantMap[status.color] || "within_sla"}
+            label={status.label}
+            size="sm"
+        />
     );
 }
 
@@ -118,21 +119,21 @@ export default function TicketList() {
     const pagination = data?.pagination || {};
 
     return (
-        <div className="space-y-5">
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title flex items-center gap-2">
-                        <span>IT Support Tickets</span>
-                    </h1>
-                    <p className="page-subtitle">
-                        {pagination.total ?? 0} total tickets logged in system
-                    </p>
-                </div>
-                <Link to="/tickets/create" className="btn btn-primary btn-sm flex items-center gap-1.5 shadow-sm">
-                    <Plus size={16} />
-                    <span>Raise Ticket</span>
-                </Link>
-            </div>
+        <div className="page-container">
+            <PageHeader
+                title="IT Support Tickets"
+                subtitle={`${pagination.total ?? 0} total tickets logged in system`}
+                icon={Ticket}
+                actions={
+                    <Link
+                        to="/tickets/create"
+                        className="btn btn-primary btn-sm inline-flex items-center gap-1.5 shadow-sm"
+                    >
+                        <Plus size={16} />
+                        <span>Raise Ticket</span>
+                    </Link>
+                }
+            />
 
             {/* Filter Toolbar */}
             <div className="card p-3.5">
@@ -402,18 +403,18 @@ export default function TicketList() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td
-                                        colSpan={isStaff() ? 9 : 8}
-                                        className="text-center py-12 text-slate-400"
-                                    >
-                                        <Ticket size={36} className="mx-auto mb-2 text-slate-300 dark:text-slate-600" />
-                                        <p className="font-medium text-slate-600 dark:text-slate-300">No tickets found</p>
-                                        <p className="text-xs text-slate-400 mt-0.5">
-                                            Try adjusting your search or filters, or{" "}
-                                            <Link to="/tickets/create" className="text-blue-600 hover:underline">
-                                                raise a new ticket
-                                            </Link>.
-                                        </p>
+                                    <td colSpan={isStaff() ? 9 : 8}>
+                                        <EmptyState
+                                            icon={Ticket}
+                                            title="No tickets found"
+                                            description="Try adjusting your search or filters, or raise a new ticket."
+                                            action={
+                                                <Link to="/tickets/create" className="btn btn-primary btn-sm inline-flex items-center gap-1.5">
+                                                    <Plus size={15} />
+                                                    <span>Raise New Ticket</span>
+                                                </Link>
+                                            }
+                                        />
                                     </td>
                                 </tr>
                             )}
@@ -421,48 +422,16 @@ export default function TicketList() {
                     </table>
                 </div>
 
-                {/* Pagination */}
                 {pagination.last_page > 1 && (
-                    <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-slate-800 text-xs">
-                        <span className="text-slate-500 dark:text-slate-400">
-                            Showing {pagination.from}–{pagination.to} of {pagination.total} tickets
-                        </span>
-                        <div className="flex items-center gap-1">
-                            <button
-                                type="button"
-                                className="btn btn-secondary btn-xs px-2"
-                                disabled={+filters.page <= 1}
-                                onClick={() => setFilter("page", +filters.page - 1)}
-                                title="Previous page"
-                            >
-                                <ChevronLeft size={14} />
-                            </button>
-                            {Array.from(
-                                { length: Math.min(pagination.last_page, 7) },
-                                (_, i) => i + 1
-                            ).map((p) => (
-                                <button
-                                    key={p}
-                                    type="button"
-                                    className={`btn btn-xs min-w-7 ${
-                                        +filters.page === p ? "btn-primary" : "btn-secondary"
-                                    }`}
-                                    onClick={() => setFilter("page", p)}
-                                >
-                                    {p}
-                                </button>
-                            ))}
-                            <button
-                                type="button"
-                                className="btn btn-secondary btn-xs px-2"
-                                disabled={+filters.page >= pagination.last_page}
-                                onClick={() => setFilter("page", +filters.page + 1)}
-                                title="Next page"
-                            >
-                                <ChevronRight size={14} />
-                            </button>
-                        </div>
-                    </div>
+                    <Pagination
+                        currentPage={filters.page}
+                        lastPage={pagination.last_page}
+                        total={pagination.total}
+                        from={pagination.from}
+                        to={pagination.to}
+                        itemLabel="tickets"
+                        onPageChange={(p) => setFilter("page", p)}
+                    />
                 )}
             </div>
         </div>

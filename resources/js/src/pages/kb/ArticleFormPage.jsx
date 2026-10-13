@@ -79,7 +79,7 @@ export default function ArticleFormPage() {
     };
 
     return (
-        <div style={{ display: "grid", gap: "1rem" }}>
+        <div className="page-container" style={{ display: "grid", gap: "1.25rem" }}>
             <div className="page-header">
                 <div>
                     <div className="page-title">
