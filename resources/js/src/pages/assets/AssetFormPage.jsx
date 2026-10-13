@@ -65,13 +65,17 @@ export default function AssetFormPage() {
 
     const { data: departments = [] } = useQuery({
         queryKey: ["departments"],
-        queryFn: () => api.get("/departments").then((r) => r.data.data || []),
+        queryFn: () => api.get("/departments").then((r) => r.data?.data || r.data || []),
     });
 
     const { data: branches = [] } = useQuery({
         queryKey: ["branches"],
-        queryFn: () => api.get("/branches").then((r) => r.data.data || []),
+        queryFn: () => api.get("/branches").then((r) => r.data?.data || r.data || []),
     });
+
+    const deptList = Array.isArray(departments) ? departments : (Array.isArray(departments?.data) ? departments.data : []);
+    const branchList = Array.isArray(branches) ? branches : (Array.isArray(branches?.data) ? branches.data : []);
+    const vendorList = Array.isArray(vendors) ? vendors : (Array.isArray(vendors?.data) ? vendors.data : []);
 
     const { data: staff = [] } = useQuery({
         queryKey: ["all-users-asset-form"],
@@ -277,7 +281,7 @@ export default function AssetFormPage() {
                                 onChange={(e) => setForm({ ...form, department_id: e.target.value })}
                             >
                                 <option value="">— Select Department —</option>
-                                {departments.map((d) => (
+                                {deptList.map((d) => (
                                     <option key={d.id} value={d.id}>
                                         {d.name} {d.code ? `(${d.code})` : ""}
                                     </option>
@@ -293,7 +297,7 @@ export default function AssetFormPage() {
                                 onChange={(e) => setForm({ ...form, branch_id: e.target.value })}
                             >
                                 <option value="">— Select Campus —</option>
-                                {branches.map((b) => (
+                                {branchList.map((b) => (
                                     <option key={b.id} value={b.id}>
                                         {b.name}
                                     </option>
@@ -377,7 +381,7 @@ export default function AssetFormPage() {
                                 onChange={(e) => setForm({ ...form, vendor_id: e.target.value })}
                             >
                                 <option value="">— Select Vendor —</option>
-                                {vendors.map((v) => (
+                                {vendorList.map((v) => (
                                     <option key={v.id} value={v.id}>
                                         {v.name}
                                     </option>

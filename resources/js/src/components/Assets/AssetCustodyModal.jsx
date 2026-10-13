@@ -50,15 +50,18 @@ export default function AssetCustodyModal({
 
     const { data: departments = [] } = useQuery({
         queryKey: ["departments"],
-        queryFn: () => api.get("/departments").then((r) => r.data?.data || []),
+        queryFn: () => api.get("/departments").then((r) => r.data?.data || r.data || []),
         enabled: isOpen,
     });
 
     const { data: branches = [] } = useQuery({
         queryKey: ["branches"],
-        queryFn: () => api.get("/branches").then((r) => r.data?.data || []),
+        queryFn: () => api.get("/branches").then((r) => r.data?.data || r.data || []),
         enabled: isOpen,
     });
+
+    const deptList = Array.isArray(departments) ? departments : (Array.isArray(departments?.data) ? departments.data : []);
+    const branchList = Array.isArray(branches) ? branches : (Array.isArray(branches?.data) ? branches.data : []);
 
     const mutation = useMutation({
         mutationFn: (payload) => {
@@ -225,7 +228,7 @@ export default function AssetCustodyModal({
                                 onChange={(e) => setDepartmentId(e.target.value)}
                             >
                                 <option value="">— Select Department —</option>
-                                {departments.map((d) => (
+                                {deptList.map((d) => (
                                     <option key={d.id} value={d.id}>
                                         {d.name}
                                     </option>
@@ -241,7 +244,7 @@ export default function AssetCustodyModal({
                                 onChange={(e) => setBranchId(e.target.value)}
                             >
                                 <option value="">— Select Branch —</option>
-                                {branches.map((b) => (
+                                {branchList.map((b) => (
                                     <option key={b.id} value={b.id}>
                                         {b.name}
                                     </option>

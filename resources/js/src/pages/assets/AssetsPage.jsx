@@ -83,13 +83,16 @@ export default function AssetsPage() {
 
     const { data: branches = [] } = useQuery({
         queryKey: ["branches"],
-        queryFn: () => api.get("/branches").then((r) => r.data?.data || []),
+        queryFn: () => api.get("/branches").then((r) => r.data?.data || r.data || []),
     });
 
     const { data: departments = [] } = useQuery({
         queryKey: ["departments"],
-        queryFn: () => api.get("/departments").then((r) => r.data?.data || []),
+        queryFn: () => api.get("/departments").then((r) => r.data?.data || r.data || []),
     });
+
+    const deptList = Array.isArray(departments) ? departments : (Array.isArray(departments?.data) ? departments.data : []);
+    const branchList = Array.isArray(branches) ? branches : (Array.isArray(branches?.data) ? branches.data : []);
 
     const assets = data?.data || [];
     const pagination = data?.pagination || {};
@@ -306,7 +309,7 @@ export default function AssetsPage() {
                             onChange={(e) => setFilter("department_id", e.target.value)}
                         >
                             <option value="">All Departments</option>
-                            {departments.map((d) => (
+                            {deptList.map((d) => (
                                 <option key={d.id} value={d.id}>
                                     {d.name}
                                 </option>
@@ -319,7 +322,7 @@ export default function AssetsPage() {
                             onChange={(e) => setFilter("branch_id", e.target.value)}
                         >
                             <option value="">All Branches</option>
-                            {branches.map((b) => (
+                            {branchList.map((b) => (
                                 <option key={b.id} value={b.id}>
                                     {b.name}
                                 </option>

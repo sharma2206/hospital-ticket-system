@@ -1,8 +1,15 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
+const getBaseUrl = () => {
+    if (typeof window !== 'undefined' && window.location.pathname.includes('/public')) {
+        return window.location.pathname.substring(0, window.location.pathname.indexOf('/public') + 7) + '/api';
+    }
+    return '/api';
+};
+
 const api = axios.create({
-    baseURL: '/api',
+    baseURL: getBaseUrl(),
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
 });
 

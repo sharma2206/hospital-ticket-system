@@ -70,32 +70,36 @@ export default function TicketList() {
         queryKey: ["ticket-statuses"],
         queryFn: () => api.get("/ticket-statuses").then((r) => r.data),
     });
-    const { data: priorityData } = useQuery({
+    const { data: priorityData = [] } = useQuery({
         queryKey: ["priorities"],
-        queryFn: () => api.get("/priorities").then((r) => r.data),
+        queryFn: () => api.get("/priorities").then((r) => r.data?.data || r.data || []),
     });
-    const { data: categoryData } = useQuery({
+    const { data: categoryData = [] } = useQuery({
         queryKey: ["categories"],
-        queryFn: () => api.get("/categories").then((r) => r.data),
+        queryFn: () => api.get("/categories").then((r) => r.data?.data || r.data || []),
     });
-    const { data: subCategoryData } = useQuery({
+    const { data: subCategoryData = [] } = useQuery({
         queryKey: ["sub-categories", filters.category_id],
         queryFn: () =>
             api
                 .get("/sub-categories", {
                     params: { category_id: filters.category_id },
                 })
-                .then((r) => r.data),
+                .then((r) => r.data?.data || r.data || []),
         enabled: !!filters.category_id,
     });
-    const { data: deptData } = useQuery({
+    const { data: deptData = [] } = useQuery({
         queryKey: ["departments"],
-        queryFn: () => api.get("/departments").then((r) => r.data),
+        queryFn: () => api.get("/departments").then((r) => r.data?.data || r.data || []),
     });
-    const { data: branchData } = useQuery({
+    const { data: branchData = [] } = useQuery({
         queryKey: ["branches"],
-        queryFn: () => api.get("/branches").then((r) => r.data),
+        queryFn: () => api.get("/branches").then((r) => r.data?.data || r.data || []),
     });
+
+    const categoryList = Array.isArray(categoryData) ? categoryData : (Array.isArray(categoryData?.data) ? categoryData.data : []);
+    const subCategoryList = Array.isArray(subCategoryData) ? subCategoryData : (Array.isArray(subCategoryData?.data) ? subCategoryData.data : []);
+    const branchList = Array.isArray(branchData) ? branchData : (Array.isArray(branchData?.data) ? branchData.data : []);
 
     const setFilter = (key, val) => {
         const p = new URLSearchParams(searchParams);
@@ -207,7 +211,7 @@ export default function TicketList() {
                             }}
                         >
                             <option value="">All Categories</option>
-                            {categoryData?.data?.map((c) => (
+                            {categoryList.map((c) => (
                                 <option key={c.id} value={c.id}>
                                     {c.name}
                                 </option>
@@ -221,7 +225,7 @@ export default function TicketList() {
                                 onChange={(e) => setFilter("sub_category_id", e.target.value)}
                             >
                                 <option value="">All Subcategories</option>
-                                {subCategoryData?.data?.map((s) => (
+                                {subCategoryList.map((s) => (
                                     <option key={s.id} value={s.id}>
                                         {s.name}
                                     </option>
@@ -237,7 +241,7 @@ export default function TicketList() {
                                     onChange={(e) => setFilter("branch_id", e.target.value)}
                                 >
                                     <option value="">All Branches</option>
-                                    {branchData?.data?.map((b) => (
+                                    {branchList.map((b) => (
                                         <option key={b.id} value={b.id}>
                                             {b.name}
                                         </option>

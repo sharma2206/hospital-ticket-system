@@ -12,6 +12,7 @@ import {
     Send,
     Loader2,
     AlertCircle,
+    AlertTriangle,
     UploadCloud,
     X,
     PlusCircle,
@@ -23,10 +24,10 @@ import {
     ChevronDown,
     SlidersHorizontal,
     Laptop,
+    Sparkles,
 } from "lucide-react";
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
-import PageHeader from "../Shared/PageHeader";
 
 export default function CreateTicket() {
     const navigate = useNavigate();
@@ -74,12 +75,15 @@ export default function CreateTicket() {
     // Populate user defaults once authenticated user profile is available
     useEffect(() => {
         if (user) {
-            const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim();
+            const fullName =
+                `${user.first_name || ""} ${user.last_name || ""}`.trim();
             setValue("requester_name", fullName);
             setValue("requester_email", user.email || "");
-            if (user.employee_id) setValue("requester_employee_id", user.employee_id);
+            if (user.employee_id)
+                setValue("requester_employee_id", user.employee_id);
             if (user.phone) setValue("requester_mobile", user.phone);
-            if (user.department_id) setValue("department_id", String(user.department_id));
+            if (user.department_id)
+                setValue("department_id", String(user.department_id));
             if (user.branch_id) setValue("branch_id", String(user.branch_id));
         }
     }, [user, setValue]);
@@ -92,63 +96,112 @@ export default function CreateTicket() {
         setValue("sub_category_id", "");
     }, [selectedCategory, setValue]);
 
-    // Data queries
-    const { data: categories, isLoading: isCategoriesLoading } = useQuery({
+    // Safe array helper: handles both array responses and { data: [...] } wraps
+    const toArray = (val) => {
+        if (Array.isArray(val)) return val;
+        if (Array.isArray(val?.data)) return val.data;
+        return [];
+    };
+
+    // Data queries with safe fallback
+    const { data: rawCategories, isLoading: isCategoriesLoading } = useQuery({
         queryKey: ["categories"],
-        queryFn: () => api.get("/categories").then((r) => r.data),
+        queryFn: () => api.get("/categories").then((r) => r.data?.data || r.data || []),
     });
 
-    const { data: subCategories, isLoading: isSubCategoriesLoading } = useQuery({
-        queryKey: ["sub-categories", selectedCategory],
-        queryFn: () =>
-            api
-                .get("/sub-categories", {
-                    params: { category_id: selectedCategory },
-                })
-                .then((r) => r.data),
-        enabled: !!selectedCategory,
-    });
+    const { data: rawSubCategories, isLoading: isSubCategoriesLoading } = useQuery(
+        {
+            queryKey: ["sub-categories", selectedCategory],
+            queryFn: () =>
+                api
+                    .get("/sub-categories", {
+                        params: { category_id: selectedCategory },
+                    })
+                    .then((r) => r.data?.data || r.data || []),
+            enabled: !!selectedCategory,
+        },
+    );
 
-    const { data: priorities, isLoading: isPrioritiesLoading } = useQuery({
+    const { data: rawPriorities, isLoading: isPrioritiesLoading } = useQuery({
         queryKey: ["priorities"],
-        queryFn: () => api.get("/priorities").then((r) => r.data),
+        queryFn: () => api.get("/priorities").then((r) => r.data?.data || r.data || []),
     });
 
-    const { data: departments, isLoading: isDepartmentsLoading } = useQuery({
+    const { data: rawDepartments, isLoading: isDepartmentsLoading } = useQuery({
         queryKey: ["departments"],
-        queryFn: () => api.get("/departments").then((r) => r.data),
+        queryFn: () => api.get("/departments").then((r) => r.data?.data || r.data || []),
     });
 
-    const { data: branches } = useQuery({
+    const { data: rawBranches } = useQuery({
         queryKey: ["branches"],
-        queryFn: () => api.get("/branches").then((r) => r.data),
+        queryFn: () => api.get("/branches").then((r) => r.data?.data || r.data || []),
     });
 
-    const { data: vendors } = useQuery({
+    const { data: rawVendors } = useQuery({
         queryKey: ["vendors"],
-        queryFn: () => api.get("/vendors").then((r) => r.data),
+        queryFn: () => api.get("/vendors").then((r) => r.data?.data || r.data || []),
         enabled: isUserStaff,
     });
 
-    const { data: assetsList = [], isLoading: isAssetsLoading } = useQuery({
+    const { data: rawAssets = [], isLoading: isAssetsLoading } = useQuery({
         queryKey: ["ticket-assets-picker"],
-        queryFn: () => api.get("/assets", { params: { per_page: 100 } }).then((r) => r.data?.data || []),
+        queryFn: () =>
+            api
+                .get("/assets", { params: { per_page: 100 } })
+                .then((r) => r.data?.data || r.data || []),
     });
+
+    const categories = toArray(rawCategories);
+    const subCategories = toArray(rawSubCategories);
+    const priorities = toArray(rawPriorities);
+    const departments = toArray(rawDepartments);
+    const branches = toArray(rawBranches);
+    const vendors = toArray(rawVendors);
+    const assetsList = toArray(rawAssets);
 
     // Auto-populate location from initial or selected asset
     const selectedAssetId = watch("asset_id");
     useEffect(() => {
         if (selectedAssetId && assetsList.length) {
-            const found = assetsList.find((a) => String(a.id) === String(selectedAssetId));
+            const found = assetsList.find(
+                (a) => String(a.id) === String(selectedAssetId),
+            );
             if (found) {
-                if (found.department_id) setValue("department_id", String(found.department_id));
-                if (found.branch_id) setValue("branch_id", String(found.branch_id));
+                if (found.department_id)
+                    setValue("department_id", String(found.department_id));
+                if (found.branch_id)
+                    setValue("branch_id", String(found.branch_id));
                 if (found.location && !getValues("room_number")) {
                     setValue("room_number", found.location);
                 }
             }
         }
     }, [selectedAssetId, assetsList, setValue, getValues]);
+
+    // Quick issue preset templates
+    const quickPresets = [
+        { label: "Printer Issue", icon: "🖨️", title: "Printer offline / not responding to print jobs", catKeyword: "Hardware", desc: "Printer is not responding to print commands. Display shows offline or paper error. Need technician assistance." },
+        { label: "Network / Wi-Fi", icon: "🌐", title: "Intranet / Internet disconnected", catKeyword: "Network", desc: "Unable to access hospital internal network and internet. Network indicator shows disconnected or limited connectivity." },
+        { label: "HIS Portal Error", icon: "🏥", title: "HIS portal login or patient record loading error", catKeyword: "Software", desc: "Encountering error code while loading patient charts or billing module in Hospital Information System." },
+        { label: "PC Not Turning On", icon: "💻", title: "Workstation desktop CPU not powering on", catKeyword: "Hardware", desc: "Computer desktop CPU is not powering on. Power button LED does not illuminate. Power socket verified." },
+        { label: "Password Reset", icon: "🔑", title: "Account login locked / password reset request", catKeyword: "Account", desc: "Unable to sign in to workstation domain account. Password expired or locked out." },
+    ];
+
+    const applyPreset = (preset) => {
+        setValue("title", preset.title, { shouldValidate: true });
+        if (!getValues("description")) {
+            setValue("description", preset.desc, { shouldValidate: true });
+        }
+        if (categories.length) {
+            const matchedCat = categories.find((c) =>
+                c.name?.toLowerCase().includes(preset.catKeyword.toLowerCase())
+            );
+            if (matchedCat) {
+                setValue("category_id", String(matchedCat.id), { shouldValidate: true });
+            }
+        }
+        toast.success(`Preset "${preset.label}" applied!`, { duration: 1800 });
+    };
 
     // Ticket creation mutation
     const mutation = useMutation({
@@ -158,7 +211,9 @@ export default function CreateTicket() {
             }),
         onSuccess: (res) => {
             const ticket = res.data?.data;
-            const ticketNum = ticket?.ticket_number ? `#${ticket.ticket_number}` : "";
+            const ticketNum = ticket?.ticket_number
+                ? `#${ticket.ticket_number}`
+                : "";
             toast.success(`IT Ticket ${ticketNum} raised successfully!`);
             navigate(`/tickets/${ticket?.id}`);
         },
@@ -169,7 +224,10 @@ export default function CreateTicket() {
                     .flat()
                     .forEach((m) => toast.error(m));
             } else {
-                toast.error(err.response?.data?.message || "Failed to submit ticket. Please check required fields.");
+                toast.error(
+                    err.response?.data?.message ||
+                        "Failed to submit ticket. Please check required fields.",
+                );
             }
         },
     });
@@ -211,184 +269,186 @@ export default function CreateTicket() {
     };
 
     // User display name & department badge
-    const userDisplayName = user ? `${user.first_name || ""} ${user.last_name || ""}`.trim() : "Current User";
+    const userDisplayName = user
+        ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
+        : "Current User";
     const userDeptName = user?.department || "Hospital Staff";
     const userEmpId = user?.employee_id || "Staff";
 
     return (
-        <div className="page-container max-w-5xl mx-auto w-full">
-            {/* Compact Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-slate-800">
-                <div>
-                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">
-                        <Link to="/tickets" className="hover:text-blue-600 transition">
-                            Tickets
-                        </Link>
+        <div className="ct-page">
+            {/* ── Page Header ── */}
+            <div className="ct-page-header">
+                <div className="ct-page-header-left">
+                    <nav className="ct-breadcrumb">
+                        <Link to="/tickets">Tickets</Link>
                         <span>/</span>
                         <span>New Request</span>
-                    </div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                        <PlusCircle size={22} className="text-blue-600 dark:text-blue-400" />
-                        <span>Raise IT Ticket</span>
+                    </nav>
+                    <h1 className="ct-page-title">
+                        <div className="ct-page-title-icon">
+                            <PlusCircle size={22} />
+                        </div>
+                        Raise IT Ticket
                     </h1>
+                    <p className="ct-page-subtitle">
+                        Fill in the details below to submit your IT support request
+                    </p>
                 </div>
-
-                <div className="flex items-center gap-2">
-                    <Link
-                        to="/tickets"
-                        className="btn btn-secondary btn-sm inline-flex items-center gap-1.5"
-                    >
-                        <ArrowLeft size={14} />
-                        <span>Cancel</span>
-                    </Link>
-                </div>
+                <Link to="/tickets" className="ct-back-btn">
+                    <ArrowLeft size={16} />
+                    <span>Back to Tickets</span>
+                </Link>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                {/* 2-Column Responsive Workspace */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-                    {/* ── LEFT COLUMN (7 cols): The Problem & Attachments ── */}
-                    <div className="lg:col-span-7 space-y-4">
-                        <div className="card shadow-sm border border-slate-200/90 dark:border-slate-800 rounded-xl overflow-hidden">
-                            <div className="card-header flex items-center justify-between px-4 py-3 bg-slate-50/70 dark:bg-slate-900/40 border-b border-slate-200 dark:border-slate-800">
-                                <div className="flex items-center gap-2">
-                                    <FileText size={16} className="text-blue-600 dark:text-blue-400" />
-                                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                                        Issue Information
-                                    </span>
+            <form onSubmit={handleSubmit(onSubmit)}>
+                <div className="ct-grid">
+
+                    {/* ═══════════════════════════════════════════════════════
+                        LEFT COLUMN: Issue Information & Attachments
+                        ═══════════════════════════════════════════════════════ */}
+                    <div className="ct-col-main">
+                        <section className="ct-section">
+                            <div className="ct-section-header">
+                                <div className="ct-section-icon ct-section-icon-blue">
+                                    <FileText size={20} />
                                 </div>
-                                <span className="text-xs text-slate-400">Required fields marked with *</span>
+                                <div>
+                                    <h2 className="ct-section-title">Issue Information</h2>
+                                    <p className="ct-section-desc">Describe the technical problem you are experiencing</p>
+                                </div>
+                                <span className="ct-hint ml-auto">Required fields marked with <span className="ct-required">*</span></span>
                             </div>
 
-                            <div className="card-body p-4 sm:p-5 space-y-3.5">
-                                {/* Title */}
-                                <div className="form-group">
-                                    <label className="form-label font-medium text-slate-700 dark:text-slate-300 text-xs">
-                                        Subject / Title <span className="text-rose-500 font-bold">*</span>
+                            <div className="ct-section-body">
+                                {/* Quick Presets Bar */}
+                                <div className="ct-presets-bar">
+                                    <span className="ct-presets-label">
+                                        <Sparkles size={13} className="text-amber-500" /> Quick Presets:
+                                    </span>
+                                    {quickPresets.map((p, idx) => (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            onClick={() => applyPreset(p)}
+                                            className="ct-preset-chip"
+                                            title={`Autofill for ${p.label}`}
+                                        >
+                                            <span>{p.icon}</span>
+                                            <span>{p.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Subject / Title */}
+                                <div className="ct-field">
+                                    <label className="ct-label">
+                                        Subject / Title <span className="ct-required">*</span>
                                     </label>
                                     <input
-                                        className={`form-control ${errors.title ? "error ring-1 ring-rose-500" : ""}`}
+                                        className={`ct-input ${errors.title ? "ct-input-error" : ""}`}
                                         placeholder="Brief summary (e.g. Billing Counter 2 printer offline, HIS login error)"
                                         autoFocus
                                         {...register("title", {
                                             required: "Please provide a ticket title",
-                                            maxLength: {
-                                                value: 255,
-                                                message: "Title cannot exceed 255 characters",
-                                            },
+                                            maxLength: { value: 255, message: "Title cannot exceed 255 characters" },
                                         })}
                                     />
                                     {errors.title && (
-                                        <span className="form-error text-xs text-rose-500 flex items-center gap-1 mt-1 font-medium">
-                                            <AlertCircle size={12} /> {errors.title.message}
-                                        </span>
+                                        <span className="ct-error"><AlertCircle size={13} /> {errors.title.message}</span>
                                     )}
                                 </div>
 
                                 {/* Category & Subcategory */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div className="form-group">
-                                        <label className="form-label font-medium text-slate-700 dark:text-slate-300 text-xs">
-                                            Category <span className="text-rose-500 font-bold">*</span>
+                                <div className="ct-field-row">
+                                    <div className="ct-field">
+                                        <label className="ct-label">
+                                            Category <span className="ct-required">*</span>
                                         </label>
-                                        <select
-                                            className={`form-control ${errors.category_id ? "error ring-1 ring-rose-500" : ""}`}
-                                            {...register("category_id", {
-                                                required: "Please select a category",
-                                            })}
-                                            disabled={isCategoriesLoading}
-                                        >
-                                            <option value="">
-                                                {isCategoriesLoading ? "Loading..." : "Select Category..."}
-                                            </option>
-                                            {categories?.data?.map((c) => (
-                                                <option key={c.id} value={c.id}>
-                                                    {c.name}
+                                        <div className="ct-select-wrap">
+                                            <select
+                                                className={`ct-select ${errors.category_id ? "ct-input-error" : ""}`}
+                                                {...register("category_id", { required: "Please select a category" })}
+                                                disabled={isCategoriesLoading}
+                                            >
+                                                <option value="">
+                                                    {isCategoriesLoading ? "Loading..." : "Select Category..."}
                                                 </option>
-                                            ))}
-                                        </select>
+                                                {departments && categories.map((c) => (
+                                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                         {errors.category_id && (
-                                            <span className="form-error text-xs text-rose-500 flex items-center gap-1 mt-1 font-medium">
-                                                <AlertCircle size={12} /> {errors.category_id.message}
-                                            </span>
+                                            <span className="ct-error"><AlertCircle size={13} /> {errors.category_id.message}</span>
                                         )}
                                     </div>
 
-                                    <div className="form-group">
-                                        <label className="form-label flex items-center justify-between font-medium text-slate-700 dark:text-slate-300 text-xs">
+                                    <div className="ct-field">
+                                        <label className="ct-label ct-label-optional">
                                             <span>Subcategory</span>
                                             {isSubCategoriesLoading && (
-                                                <span className="text-[11px] text-blue-500 font-normal flex items-center gap-1">
-                                                    <Loader2 size={10} className="animate-spin" /> Loading...
+                                                <span className="ct-loading-hint">
+                                                    <Loader2 size={12} className="animate-spin" /> Loading...
                                                 </span>
                                             )}
                                         </label>
-                                        <select
-                                            className="form-control"
-                                            {...register("sub_category_id")}
-                                            disabled={!selectedCategory || isSubCategoriesLoading}
-                                        >
-                                            <option value="">
-                                                {!selectedCategory
-                                                    ? "— Select category first —"
-                                                    : isSubCategoriesLoading
-                                                    ? "Loading options..."
-                                                    : (subCategories?.data?.length || 0) === 0
-                                                    ? "— No subcategories —"
-                                                    : "Select Subcategory (Optional)"}
-                                            </option>
-                                            {subCategories?.data?.map((s) => (
-                                                <option key={s.id} value={s.id}>
-                                                    {s.name}
+                                        <div className="ct-select-wrap">
+                                            <select
+                                                className="ct-select"
+                                                {...register("sub_category_id")}
+                                                disabled={!selectedCategory || isSubCategoriesLoading}
+                                            >
+                                                <option value="">
+                                                    {!selectedCategory
+                                                        ? "— Select category first —"
+                                                        : isSubCategoriesLoading
+                                                          ? "Loading options..."
+                                                          : subCategories.length === 0
+                                                            ? "— No subcategories —"
+                                                            : "Select Subcategory (Optional)"}
                                                 </option>
-                                            ))}
-                                        </select>
+                                                {subCategories.map((s) => (
+                                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* Description */}
-                                <div className="form-group">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <label className="form-label m-0 font-medium text-slate-700 dark:text-slate-300 text-xs">
-                                            Detailed Description <span className="text-rose-500 font-bold">*</span>
+                                <div className="ct-field">
+                                    <div className="ct-label-row">
+                                        <label className="ct-label">
+                                            Detailed Description <span className="ct-required">*</span>
                                         </label>
-                                        <span className="text-[11px] text-slate-400">Min 10 characters</span>
+                                        <span className="ct-hint">Min 10 characters</span>
                                     </div>
                                     <textarea
-                                        className={`form-control min-h-[95px] resize-y ${errors.description ? "error ring-1 ring-rose-500" : ""}`}
-                                        rows={3}
+                                        className={`ct-textarea ${errors.description ? "ct-input-error" : ""}`}
+                                        rows={5}
                                         placeholder="Describe the issue, error codes, steps performed, or patient care impact..."
                                         {...register("description", {
                                             required: "Please describe the issue in detail",
-                                            minLength: {
-                                                value: 10,
-                                                message: "Minimum 10 characters required",
-                                            },
+                                            minLength: { value: 10, message: "Minimum 10 characters required" },
                                         })}
                                     />
                                     {errors.description && (
-                                        <span className="form-error text-xs text-rose-500 flex items-center gap-1 mt-1 font-medium">
-                                            <AlertCircle size={12} /> {errors.description.message}
-                                        </span>
+                                        <span className="ct-error"><AlertCircle size={13} /> {errors.description.message}</span>
                                     )}
                                 </div>
 
-                                {/* Inline Compact Attachment Dropzone */}
-                                <div className="form-group pt-1">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <label className="form-label m-0 font-medium text-slate-700 dark:text-slate-300 text-xs flex items-center gap-1.5">
-                                            <Paperclip size={13} className="text-slate-400" />
-                                            <span>Attachments (Optional)</span>
-                                        </label>
-                                        <span className="text-[11px] text-slate-400">JPG, PNG, PDF, DOC, LOG (Max 10MB)</span>
-                                    </div>
+                                {/* Attachments */}
+                                <div className="ct-field">
+                                    <label className="ct-label ct-label-optional">
+                                        <Paperclip size={14} className="ct-label-icon" />
+                                        <span>Attachments (Optional)</span>
+                                        <span className="ct-optional-tag">JPG, PNG, PDF, DOC, LOG (Max 10MB)</span>
+                                    </label>
 
                                     <div
-                                        className={`compact-dropzone ${isDragging ? "dragover" : ""}`}
-                                        onDragOver={(e) => {
-                                            e.preventDefault();
-                                            setIsDragging(true);
-                                        }}
+                                        className={`ct-upload-zone ${isDragging ? "ct-upload-zone-active" : ""}`}
+                                        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                                         onDragLeave={() => setIsDragging(false)}
                                         onDrop={(e) => {
                                             e.preventDefault();
@@ -411,75 +471,69 @@ export default function CreateTicket() {
                                             }}
                                             accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.xls,.xlsx,.zip,.txt,.log"
                                         />
-                                        <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-                                            <UploadCloud size={16} className="text-blue-500" />
-                                            <span>Click to attach file or drag here</span>
+                                        <div className="ct-upload-icon">
+                                            <UploadCloud size={24} />
                                         </div>
-                                        <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline">
-                                            Browse files
-                                        </span>
+                                        <div className="ct-upload-text">
+                                            <span className="ct-upload-primary">Click to attach file or drag here</span>
+                                            <span className="ct-upload-secondary">Browse files from your computer</span>
+                                        </div>
                                     </div>
 
-                                    {/* File Chips */}
                                     {files.length > 0 && (
-                                        <div className="flex flex-wrap gap-1.5 pt-2">
+                                        <div className="ct-file-list">
                                             {files.map((f, i) => (
-                                                <div key={i} className="file-chip">
-                                                    <Paperclip size={11} className="text-slate-400" />
-                                                    <span className="max-w-[160px] truncate" title={f.name}>
-                                                        {f.name}
-                                                    </span>
-                                                    <span className="text-[10px] text-slate-400">
-                                                        ({formatBytes(f.size)})
-                                                    </span>
+                                                <div key={i} className="ct-file-item">
+                                                    <Paperclip size={14} className="ct-file-icon" />
+                                                    <span className="ct-file-name" title={f.name}>{f.name}</span>
+                                                    <span className="ct-file-size">({formatBytes(f.size)})</span>
                                                     <button
                                                         type="button"
-                                                        className="file-chip-remove"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleRemoveFile(i);
-                                                        }}
+                                                        className="ct-file-remove"
+                                                        onClick={(e) => { e.stopPropagation(); handleRemoveFile(i); }}
                                                         title="Remove file"
                                                         aria-label="Remove file"
                                                     >
-                                                        <X size={11} />
+                                                        <X size={14} />
                                                     </button>
                                                 </div>
                                             ))}
                                             {files.length > 1 && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setFiles([])}
-                                                    className="text-[11px] text-rose-500 hover:underline px-1 self-center"
-                                                >
-                                                    Clear all
+                                                <button type="button" onClick={() => setFiles([])} className="ct-file-clear">
+                                                    Clear all files
                                                 </button>
                                             )}
                                         </div>
                                     )}
                                 </div>
                             </div>
-                        </div>
+                        </section>
                     </div>
 
-                    {/* ── RIGHT COLUMN (5 cols): Context, Location & Requester ── */}
-                    <div className="lg:col-span-5 space-y-4">
-                        {/* Priority Selection Card */}
-                        <div className="card shadow-sm border border-slate-200/90 dark:border-slate-800 rounded-xl overflow-hidden">
-                            <div className="card-header flex items-center justify-between px-4 py-2.5 bg-slate-50/70 dark:bg-slate-900/40 border-b border-slate-200 dark:border-slate-800">
-                                <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                                    Ticket Priority <span className="text-rose-500 font-bold">*</span>
-                                </span>
-                                <span className="text-[11px] text-slate-400">Affects SLA response time</span>
+                    {/* ═══════════════════════════════════════════════════════
+                        RIGHT COLUMN: Priority, Location & Requester
+                        ═══════════════════════════════════════════════════════ */}
+                    <div className="ct-col-sidebar">
+
+                        {/* Priority Card */}
+                        <section className="ct-section">
+                            <div className="ct-section-header">
+                                <div className="ct-section-icon ct-section-icon-amber">
+                                    <AlertTriangle size={18} />
+                                </div>
+                                <div>
+                                    <h2 className="ct-section-title">Ticket Priority <span className="ct-required">*</span></h2>
+                                    <p className="ct-section-desc">Affects SLA response time</p>
+                                </div>
                             </div>
-                            <div className="card-body p-3.5">
-                                {/* Segmented Priority Buttons */}
-                                <div className="priority-pill-group">
+
+                            <div className="ct-section-body">
+                                <div className="ct-priority-grid">
                                     {[
-                                        { id: "1", name: "Low", label: "24h SLA", activeClass: "active-low" },
-                                        { id: "2", name: "Medium", label: "8h SLA", activeClass: "active-medium" },
-                                        { id: "3", name: "High", label: "4h SLA", activeClass: "active-high" },
-                                        { id: "4", name: "Critical", label: "1h SLA", activeClass: "active-critical" },
+                                        { id: "1", name: "Low", sla: "24h SLA", colorClass: "ct-priority-low" },
+                                        { id: "2", name: "Medium", sla: "8h SLA", colorClass: "ct-priority-medium" },
+                                        { id: "3", name: "High", sla: "4h SLA", colorClass: "ct-priority-high" },
+                                        { id: "4", name: "Critical", sla: "1h SLA", colorClass: "ct-priority-critical" },
                                     ].map((p) => {
                                         const isSelected = String(currentPriority) === String(p.id);
                                         return (
@@ -487,260 +541,223 @@ export default function CreateTicket() {
                                                 key={p.id}
                                                 type="button"
                                                 onClick={() => setValue("priority_id", p.id)}
-                                                className={`priority-pill-btn ${isSelected ? p.activeClass : ""}`}
+                                                className={`ct-priority-card ${p.colorClass} ${isSelected ? "selected" : ""}`}
                                             >
-                                                <span>{p.name}</span>
-                                                <span className="text-[10px] opacity-75 font-normal">{p.label}</span>
+                                                <div className="ct-priority-card-check">
+                                                    {isSelected && <CheckCircle2 size={15} />}
+                                                </div>
+                                                <span className="ct-priority-card-name">{p.name}</span>
+                                                <span className="ct-priority-card-sla">{p.sla}</span>
                                             </button>
                                         );
                                     })}
                                 </div>
                                 <input type="hidden" {...register("priority_id", { required: true })} />
                             </div>
-                        </div>
+                        </section>
 
-                        {/* Location & Department Card */}
-                        <div className="card shadow-sm border border-slate-200/90 dark:border-slate-800 rounded-xl overflow-hidden">
-                            <div className="card-header flex items-center justify-between px-4 py-2.5 bg-slate-50/70 dark:bg-slate-900/40 border-b border-slate-200 dark:border-slate-800">
-                                <div className="flex items-center gap-1.5">
-                                    <MapPin size={15} className="text-teal-600 dark:text-teal-400" />
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                                        Hospital Location
-                                    </span>
+                        {/* Hospital Location Card */}
+                        <section className="ct-section">
+                            <div className="ct-section-header">
+                                <div className="ct-section-icon ct-section-icon-teal">
+                                    <MapPin size={18} />
+                                </div>
+                                <div>
+                                    <h2 className="ct-section-title">Hospital Location</h2>
+                                    <p className="ct-section-desc">Help us locate the issue quickly</p>
                                 </div>
                                 {user?.department_id && (
-                                    <span className="text-[10px] bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0.5 rounded font-medium">
-                                        Auto-filled
+                                    <span className="ct-autofill-badge ml-auto">
+                                        <CheckCircle2 size={12} /> Auto-filled
                                     </span>
                                 )}
                             </div>
 
-                            <div className="card-body p-4 space-y-3">
-                                {/* Affected IT / Clinical Device (Optional) */}
-                                <div className="form-group">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <label className="form-label m-0 font-medium text-slate-700 dark:text-slate-300 text-xs flex items-center gap-1.5">
-                                            <Laptop size={13} className="text-slate-400" />
-                                            <span>Affected IT / Clinical Device (Optional)</span>
+                            <div className="ct-section-body">
+                                {/* Affected Device */}
+                                <div className="ct-field">
+                                    <div className="ct-label-row">
+                                        <label className="ct-label ct-label-optional">
+                                            <Laptop size={14} className="ct-label-icon" />
+                                            <span>Affected IT / Clinical Device</span>
                                         </label>
-                                        <span className="text-[11px] text-slate-400">
-                                            {isAssetsLoading ? "Loading devices..." : "Quick link device to ticket"}
-                                        </span>
+                                        <span className="ct-hint">Quick link device</span>
                                     </div>
-                                    <select
-                                        className="form-control"
-                                        {...register("asset_id")}
-                                        disabled={isAssetsLoading}
-                                    >
-                                        <option value="">— No specific device / General issue —</option>
-                                        {assetsList.map((ast) => (
-                                            <option key={ast.id} value={ast.id}>
-                                                {ast.asset_code} · {ast.name} {ast.serial_number ? `(S/N: ${ast.serial_number})` : ""} {ast.department?.name ? `[${ast.department.name}]` : ""}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <div className="ct-select-wrap">
+                                        <select className="ct-select" {...register("asset_id")} disabled={isAssetsLoading}>
+                                            <option value="">— No specific device / General issue —</option>
+                                            {assetsList.map((ast) => (
+                                                <option key={ast.id} value={ast.id}>
+                                                    {ast.asset_code} · {ast.name}{" "}
+                                                    {ast.serial_number ? `(S/N: ${ast.serial_number})` : ""}{" "}
+                                                    {ast.department?.name ? `[${ast.department.name}]` : ""}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
 
                                 {/* Department & Branch */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div className="form-group">
-                                        <label className="form-label font-medium text-slate-700 dark:text-slate-300 text-xs">
-                                            Department <span className="text-rose-500 font-bold">*</span>
+                                <div className="ct-field-row">
+                                    <div className="ct-field">
+                                        <label className="ct-label">
+                                            Department <span className="ct-required">*</span>
                                         </label>
-                                        <select
-                                            className={`form-control ${errors.department_id ? "error ring-1 ring-rose-500" : ""}`}
-                                            {...register("department_id", {
-                                                required: "Department is required",
-                                            })}
-                                            disabled={isDepartmentsLoading}
-                                        >
-                                            <option value="">
-                                                {isDepartmentsLoading ? "Loading..." : "Select Department..."}
-                                            </option>
-                                            {departments?.data?.map((d) => (
-                                                <option key={d.id} value={d.id}>
-                                                    {d.name} {d.code ? `(${d.code})` : ""}
+                                        <div className="ct-select-wrap">
+                                            <select
+                                                className={`ct-select ${errors.department_id ? "ct-input-error" : ""}`}
+                                                {...register("department_id", { required: "Department is required" })}
+                                                disabled={isDepartmentsLoading}
+                                            >
+                                                <option value="">
+                                                    {isDepartmentsLoading ? "Loading..." : "Select Department..."}
                                                 </option>
-                                            ))}
-                                        </select>
+                                                {departments.map((d) => (
+                                                    <option key={d.id} value={d.id}>
+                                                        {d.name} {d.code ? `(${d.code})` : ""}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
                                         {errors.department_id && (
-                                            <span className="form-error text-xs text-rose-500 flex items-center gap-1 mt-1 font-medium">
-                                                <AlertCircle size={12} /> {errors.department_id.message}
-                                            </span>
+                                            <span className="ct-error"><AlertCircle size={13} /> {errors.department_id.message}</span>
                                         )}
                                     </div>
 
-                                    <div className="form-group">
-                                        <label className="form-label font-medium text-slate-700 dark:text-slate-300 text-xs">
-                                            Branch / Campus
-                                        </label>
-                                        <select className="form-control" {...register("branch_id")}>
-                                            <option value="">Main Hospital Campus</option>
-                                            {branches?.data?.map((b) => (
-                                                <option key={b.id} value={b.id}>
-                                                    {b.name}
-                                                </option>
-                                            ))}
-                                        </select>
+                                    <div className="ct-field">
+                                        <label className="ct-label">Branch / Campus</label>
+                                        <div className="ct-select-wrap">
+                                            <select className="ct-select" {...register("branch_id")}>
+                                                <option value="">Main Hospital Campus</option>
+                                                {branches.map((b) => (
+                                                    <option key={b.id} value={b.id}>{b.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* Building & Room */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div className="form-group">
-                                        <label className="form-label font-medium text-slate-700 dark:text-slate-300 text-xs">
-                                            Building / Wing
-                                        </label>
-                                        <input
-                                            className="form-control"
-                                            placeholder="e.g. OPD Wing, Block A"
-                                            {...register("building")}
-                                        />
+                                <div className="ct-field-row">
+                                    <div className="ct-field">
+                                        <label className="ct-label">Building / Wing</label>
+                                        <input className="ct-input" placeholder="e.g. OPD Wing, Block A" {...register("building")} />
                                     </div>
-
-                                    <div className="form-group">
-                                        <label className="form-label font-medium text-slate-700 dark:text-slate-300 text-xs">
-                                            Room / Bed Number
-                                        </label>
-                                        <input
-                                            className="form-control"
-                                            placeholder="e.g. Room 204, Bed 12"
-                                            {...register("room_number")}
-                                        />
+                                    <div className="ct-field">
+                                        <label className="ct-label">Room / Bed Number</label>
+                                        <input className="ct-input" placeholder="e.g. Room 204, Bed 12" {...register("room_number")} />
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </section>
 
-                        {/* Requester Information Card */}
-                        <div className="card shadow-sm border border-slate-200/90 dark:border-slate-800 rounded-xl overflow-hidden">
-                            <div className="card-header flex items-center justify-between px-4 py-2.5 bg-slate-50/70 dark:bg-slate-900/40 border-b border-slate-200 dark:border-slate-800">
-                                <div className="flex items-center gap-1.5">
-                                    <User size={15} className="text-purple-600 dark:text-purple-400" />
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                                        Requester Contact
-                                    </span>
+                        {/* Requester Contact Card */}
+                        <section className="ct-section">
+                            <div className="ct-section-header">
+                                <div className="ct-section-icon ct-section-icon-purple">
+                                    <User size={18} />
                                 </div>
-
+                                <div>
+                                    <h2 className="ct-section-title">Requester Contact</h2>
+                                    <p className="ct-section-desc">Reported by staff member</p>
+                                </div>
                                 {isUserStaff && (
                                     <button
                                         type="button"
                                         onClick={() => setIsOnBehalf((prev) => !prev)}
-                                        className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold hover:underline flex items-center gap-1"
+                                        className="ct-behalf-toggle ml-auto"
                                     >
                                         {isOnBehalf ? "Log as Myself" : "+ On Behalf of Staff"}
                                     </button>
                                 )}
                             </div>
 
-                            <div className="card-body p-4 space-y-3">
-                                {/* Regular User: Compact Verified Profile Card */}
+                            <div className="ct-section-body">
                                 {!isOnBehalf ? (
-                                    <div className="bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 rounded-lg p-3">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2.5">
-                                                <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
-                                                    {(user?.first_name?.[0] || "U") + (user?.last_name?.[0] || "")}
+                                    <div className="ct-requester-card">
+                                        <div className="ct-requester-info">
+                                            <div className="ct-requester-avatar">
+                                                {(user?.first_name?.[0] || "U") + (user?.last_name?.[0] || "")}
+                                            </div>
+                                            <div className="ct-requester-details">
+                                                <div className="ct-requester-name">
+                                                    {userDisplayName}
+                                                    <span className="ct-requester-emp">({userEmpId})</span>
                                                 </div>
-                                                <div>
-                                                    <div className="text-xs font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                                                        <span>{userDisplayName}</span>
-                                                        <span className="text-[10px] text-slate-500 font-mono">
-                                                            ({userEmpId})
-                                                        </span>
-                                                    </div>
-                                                    <div className="text-[11px] text-slate-500">
-                                                        {userDeptName} • {user?.email || "No email"}
-                                                    </div>
+                                                <div className="ct-requester-meta">
+                                                    {userDeptName} • {user?.email || "No email"}
                                                 </div>
                                             </div>
-
                                             <button
                                                 type="button"
                                                 onClick={() => setIsEditingContact((prev) => !prev)}
-                                                className="text-slate-400 hover:text-blue-600 p-1 rounded"
-                                                title="Edit phone or alternate callback"
+                                                className="ct-edit-contact-btn"
+                                                title="Edit contact info"
                                             >
-                                                <Edit3 size={13} />
+                                                <Edit3 size={14} />
                                             </button>
                                         </div>
 
-                                        {/* Optional Contact Edit Row */}
                                         {isEditingContact && (
-                                            <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-700/60 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                <div>
-                                                    <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
-                                                        Callback Mobile
-                                                    </label>
-                                                    <input
-                                                        className="form-control text-xs py-1.5"
-                                                        placeholder="e.g. +91 98765 43210"
-                                                        {...register("requester_mobile")}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
-                                                        Alternate Email
-                                                    </label>
-                                                    <input
-                                                        className="form-control text-xs py-1.5"
-                                                        placeholder="e.g. staff@hospital.org"
-                                                        {...register("requester_email")}
-                                                    />
+                                            <div className="ct-requester-edit">
+                                                <div className="ct-field-row">
+                                                    <div className="ct-field">
+                                                        <label className="ct-label-sm">Callback Mobile</label>
+                                                        <input
+                                                            className="ct-input ct-input-sm"
+                                                            placeholder="e.g. +91 98765 43210"
+                                                            {...register("requester_mobile")}
+                                                        />
+                                                    </div>
+                                                    <div className="ct-field">
+                                                        <label className="ct-label-sm">Alternate Email</label>
+                                                        <input
+                                                            className="ct-input ct-input-sm"
+                                                            placeholder="e.g. staff@hospital.org"
+                                                            {...register("requester_email")}
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
                                     </div>
                                 ) : (
-                                    /* IT Staff: "On Behalf Of" Form Inputs */
-                                    <div className="space-y-3 bg-blue-50/40 dark:bg-blue-950/20 p-3 rounded-lg border border-blue-200/60 dark:border-blue-900/40">
-                                        <div className="text-[11px] font-semibold text-blue-700 dark:text-blue-300 flex items-center gap-1">
-                                            <UserCheck size={13} />
+                                    <div className="ct-behalf-form">
+                                        <div className="ct-behalf-notice">
+                                            <UserCheck size={14} />
                                             <span>Logging on behalf of hospital staff member:</span>
                                         </div>
-
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                            <div className="form-group">
-                                                <label className="form-label text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                                                    Staff Full Name *
-                                                </label>
+                                        <div className="ct-field-grid-2">
+                                            <div className="ct-field">
+                                                <label className="ct-label-sm">Staff Full Name *</label>
                                                 <input
-                                                    className="form-control text-xs py-1.5"
+                                                    className="ct-input ct-input-sm"
                                                     placeholder="e.g. Dr. Jane Smith"
                                                     {...register("requester_name", {
                                                         required: isOnBehalf ? "Requester name is required" : false,
                                                     })}
                                                 />
                                             </div>
-
-                                            <div className="form-group">
-                                                <label className="form-label text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                                                    Employee ID
-                                                </label>
+                                            <div className="ct-field">
+                                                <label className="ct-label-sm">Employee ID</label>
                                                 <input
-                                                    className="form-control text-xs py-1.5"
+                                                    className="ct-input ct-input-sm"
                                                     placeholder="e.g. EMP-2034"
                                                     {...register("requester_employee_id")}
                                                 />
                                             </div>
-
-                                            <div className="form-group">
-                                                <label className="form-label text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                                                    Mobile Contact
-                                                </label>
+                                            <div className="ct-field">
+                                                <label className="ct-label-sm">Mobile Contact</label>
                                                 <input
-                                                    className="form-control text-xs py-1.5"
+                                                    className="ct-input ct-input-sm"
                                                     type="tel"
                                                     placeholder="e.g. +91 98765 43210"
                                                     {...register("requester_mobile")}
                                                 />
                                             </div>
-
-                                            <div className="form-group">
-                                                <label className="form-label text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                                                    Report Channel
-                                                </label>
-                                                <select className="form-control text-xs py-1.5" {...register("source")}>
+                                            <div className="ct-field">
+                                                <label className="ct-label-sm">Report Channel</label>
+                                                <select className="ct-select ct-select-sm" {...register("source")}>
                                                     <option value="phone">Telephone Call</option>
                                                     <option value="walk_in">Direct Walk-In</option>
                                                     <option value="whatsapp">Helpdesk WhatsApp</option>
@@ -751,97 +768,70 @@ export default function CreateTicket() {
                                         </div>
                                     </div>
                                 )}
-
-                                {/* Collapsible Advanced SLA & Vendor Options */}
-                                <details className="group pt-1">
-                                    <summary className="cursor-pointer text-[11px] font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 flex items-center justify-between py-1">
-                                        <span className="flex items-center gap-1">
-                                            <SlidersHorizontal size={11} />
-                                            <span>More Options (Impact, Urgency, Vendor)</span>
-                                        </span>
-                                        <ChevronDown
-                                            size={12}
-                                            className="transition-transform group-open:rotate-180"
-                                        />
-                                    </summary>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2.5 mt-1 border-t border-slate-100 dark:border-slate-800">
-                                        <div className="form-group">
-                                            <label className="form-label text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                                                Impact
-                                            </label>
-                                            <select className="form-control text-xs py-1.5" {...register("impact")}>
-                                                <option value="low">Low (Individual user)</option>
-                                                <option value="medium">Medium (Department unit)</option>
-                                                <option value="high">High (Entire department)</option>
-                                                <option value="critical">Critical (Hospital-wide)</option>
-                                            </select>
-                                        </div>
-
-                                        <div className="form-group">
-                                            <label className="form-label text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                                                Urgency
-                                            </label>
-                                            <select className="form-control text-xs py-1.5" {...register("urgency")}>
-                                                <option value="low">Low (Standard SLA)</option>
-                                                <option value="medium">Medium (Normal priority)</option>
-                                                <option value="high">High (Work stalled)</option>
-                                                <option value="critical">Critical (Patient care)</option>
-                                            </select>
-                                        </div>
-
-                                        {isUserStaff && (
-                                            <div className="form-group sm:col-span-2">
-                                                <label className="form-label text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                                                    Related Vendor (Optional)
-                                                </label>
-                                                <select
-                                                    className="form-control text-xs py-1.5"
-                                                    {...register("vendor_id")}
-                                                >
-                                                    <option value="">None / Internal IT Support</option>
-                                                    {vendors?.data?.map((v) => (
-                                                        <option key={v.id} value={v.id}>
-                                                            {v.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        )}
-                                    </div>
-                                </details>
                             </div>
-                        </div>
+                        </section>
+
+                        {/* Advanced Options Accordion */}
+                        <details className="ct-advanced">
+                            <summary className="ct-advanced-trigger">
+                                <SlidersHorizontal size={14} />
+                                <span>Advanced Options (Impact, Urgency, Vendor)</span>
+                                <ChevronDown size={14} className="ct-advanced-chevron" />
+                            </summary>
+                            <div className="ct-advanced-body">
+                                <div className="ct-field-row">
+                                    <div className="ct-field">
+                                        <label className="ct-label-sm">Impact</label>
+                                        <select className="ct-select ct-select-sm" {...register("impact")}>
+                                            <option value="low">Low (Individual user)</option>
+                                            <option value="medium">Medium (Department unit)</option>
+                                            <option value="high">High (Entire department)</option>
+                                            <option value="critical">Critical (Hospital-wide)</option>
+                                        </select>
+                                    </div>
+                                    <div className="ct-field">
+                                        <label className="ct-label-sm">Urgency</label>
+                                        <select className="ct-select ct-select-sm" {...register("urgency")}>
+                                            <option value="low">Low (Standard SLA)</option>
+                                            <option value="medium">Medium (Normal priority)</option>
+                                            <option value="high">High (Work stalled)</option>
+                                            <option value="critical">Critical (Patient care)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                {isUserStaff && (
+                                    <div className="ct-field">
+                                        <label className="ct-label-sm">Related Vendor (Optional)</label>
+                                        <select className="ct-select ct-select-sm" {...register("vendor_id")}>
+                                            <option value="">None / Internal IT Support</option>
+                                            {vendors.map((v) => (
+                                                <option key={v.id} value={v.id}>{v.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+                        </details>
                     </div>
                 </div>
 
-                {/* ── STICKY / COMPACT SUBMIT BAR ── */}
-                <div className="sticky bottom-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-xl p-3 sm:px-5 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3">
-                    <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                        <ShieldCheck size={16} className="text-emerald-500 flex-shrink-0" />
+                {/* ═══ Sticky Submit Bar ═══ */}
+                <div className="ct-submit-bar">
+                    <div className="ct-submit-info">
+                        <ShieldCheck size={18} />
                         <span>Ticket routes automatically to IT on-duty team with SLA tracking.</span>
                     </div>
-
-                    <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-                        <Link
-                            to="/tickets"
-                            className="btn btn-secondary text-xs sm:text-sm px-4 py-2"
-                        >
-                            Cancel
-                        </Link>
-                        <button
-                            type="submit"
-                            className="btn btn-primary text-xs sm:text-sm px-5 py-2 flex items-center gap-2 shadow"
-                            disabled={mutation.isPending}
-                        >
+                    <div className="ct-submit-actions">
+                        <Link to="/tickets" className="ct-btn-cancel">Cancel</Link>
+                        <button type="submit" className="ct-btn-submit" disabled={mutation.isPending}>
                             {mutation.isPending ? (
                                 <>
-                                    <Loader2 size={15} className="animate-spin" />
-                                    <span>Submitting Ticket...</span>
+                                    <Loader2 size={18} className="animate-spin" />
+                                    <span>Submitting...</span>
                                 </>
                             ) : (
                                 <>
-                                    <Send size={15} />
+                                    <Send size={18} />
                                     <span>Submit IT Ticket</span>
                                 </>
                             )}

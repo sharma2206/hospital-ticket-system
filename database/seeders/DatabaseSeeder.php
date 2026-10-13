@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Asset;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -20,6 +21,8 @@ class DatabaseSeeder extends Seeder
             VendorsSeeder::class,
             SlaRulesSeeder::class,
             SettingsSeeder::class,
+            AssetsSeeder::class,
+            AssetCategoriesSeeder::class,
 
             // Users (must be after branches/departments/roles)
             DefaultUserSeeder::class,
